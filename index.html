@@ -617,6 +617,42 @@
                     </label>
                 </div>
 
+                <div class="form-group">
+                    <label style="font-weight: bold; color: #667eea; margin-bottom: 10px; display: block;">הרשאות בדיקות בוקר:</label>
+                    
+                    <label class="checkbox-label">
+                        <span>✓ בדיקת QF (קריטית - דורש הרשאה מיוחדת)</span>
+                        <input type="checkbox" id="employee-check-qf">
+                    </label>
+                    
+                    <label class="checkbox-label">
+                        <span>✓ בדיקת אפליקציות</span>
+                        <input type="checkbox" id="employee-check-apps">
+                    </label>
+                    
+                    <label class="checkbox-label">
+                        <span>✓ בדיקת מסכים</span>
+                        <input type="checkbox" id="employee-check-screens">
+                    </label>
+                    
+                    <label class="checkbox-label">
+                        <span>✓ בדיקת חדרי ישיבות</span>
+                        <input type="checkbox" id="employee-check-rooms">
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>צבע עובד (לשיבוץ)</label>
+                    <input type="color" id="employee-color" value="#FF6B6B" style="width: 100%; height: 50px; cursor: pointer; border-radius: 8px; border: 2px solid #ddd;">
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <span>🌟 הצג מסגרת זהב (אחמ"שים)</span>
+                        <input type="checkbox" id="employee-show-border" checked>
+                    </label>
+                </div>
+
                 <button onclick="addEmployee()">➕ הוסף עובד</button>
             </div>
 
@@ -789,6 +825,43 @@
                     <input type="checkbox" id="edit-employee-weekend-oncall">
                 </label>
             </div>
+            
+            <div class="form-group">
+                <label style="font-weight: bold; color: #667eea;">הרשאות בדיקות בוקר:</label>
+                
+                <label class="checkbox-label">
+                    <span>✓ בדיקת QF</span>
+                    <input type="checkbox" id="edit-employee-check-qf">
+                </label>
+                
+                <label class="checkbox-label">
+                    <span>✓ בדיקת אפליקציות</span>
+                    <input type="checkbox" id="edit-employee-check-apps">
+                </label>
+                
+                <label class="checkbox-label">
+                    <span>✓ בדיקת מסכים</span>
+                    <input type="checkbox" id="edit-employee-check-screens">
+                </label>
+                
+                <label class="checkbox-label">
+                    <span>✓ בדיקת חדרי ישיבות</span>
+                    <input type="checkbox" id="edit-employee-check-rooms">
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label>צבע עובד</label>
+                <input type="color" id="edit-employee-color" style="width: 100%; height: 50px; cursor: pointer; border-radius: 8px;">
+            </div>
+            
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <span>🌟 הצג מסגרת זהב (אחמ"שים)</span>
+                    <input type="checkbox" id="edit-employee-show-border">
+                </label>
+            </div>
+            
             <button onclick="saveEmployeeEdit()">💾 שמור שינויים</button>
         </div>
     </div>
@@ -934,6 +1007,12 @@
             const isManager = document.getElementById('employee-manager').checked;
             const canWFH = document.getElementById('employee-wfh').checked;
             const weekendOnCall = document.getElementById('employee-weekend-oncall').checked;
+            const checkQF = document.getElementById('employee-check-qf').checked;
+            const checkApps = document.getElementById('employee-check-apps').checked;
+            const checkScreens = document.getElementById('employee-check-screens').checked;
+            const checkRooms = document.getElementById('employee-check-rooms').checked;
+            const color = document.getElementById('employee-color').value;
+            const showBorder = document.getElementById('employee-show-border').checked;
 
             if (!name) {
                 alert('נא להזין שם עובד');
@@ -947,7 +1026,14 @@
                 isManager: isManager,
                 canWFH: canWFH,
                 weekendOnCall: weekendOnCall,
-                color: employeeColors[employees.length % employeeColors.length],
+                checkPermissions: {
+                    qf: checkQF,
+                    apps: checkApps,
+                    screens: checkScreens,
+                    rooms: checkRooms
+                },
+                color: color,
+                showBorder: showBorder,
                 fridayCount: 0,
                 lastFridayWeek: null,
                 wfhThisWeek: 0
@@ -971,6 +1057,12 @@
             document.getElementById('employee-manager').checked = false;
             document.getElementById('employee-wfh').checked = false;
             document.getElementById('employee-weekend-oncall').checked = false;
+            document.getElementById('employee-check-qf').checked = false;
+            document.getElementById('employee-check-apps').checked = false;
+            document.getElementById('employee-check-screens').checked = false;
+            document.getElementById('employee-check-rooms').checked = false;
+            document.getElementById('employee-color').value = employeeColors[employees.length % employeeColors.length];
+            document.getElementById('employee-show-border').checked = true;
         }
 
         function deleteEmployee(id) {
@@ -1014,6 +1106,16 @@
             document.getElementById('edit-employee-wfh').checked = employee.canWFH;
             document.getElementById('edit-employee-weekend-oncall').checked = employee.weekendOnCall || false;
             
+            // Check permissions
+            const perms = employee.checkPermissions || {};
+            document.getElementById('edit-employee-check-qf').checked = perms.qf || false;
+            document.getElementById('edit-employee-check-apps').checked = perms.apps || false;
+            document.getElementById('edit-employee-check-screens').checked = perms.screens || false;
+            document.getElementById('edit-employee-check-rooms').checked = perms.rooms || false;
+            
+            document.getElementById('edit-employee-color').value = employee.color || '#FF6B6B';
+            document.getElementById('edit-employee-show-border').checked = employee.showBorder !== false;
+            
             document.getElementById('edit-employee-modal').classList.add('active');
         }
 
@@ -1030,6 +1132,14 @@
             const canWFH = document.getElementById('edit-employee-wfh').checked;
             const weekendOnCall = document.getElementById('edit-employee-weekend-oncall').checked;
             
+            const checkQF = document.getElementById('edit-employee-check-qf').checked;
+            const checkApps = document.getElementById('edit-employee-check-apps').checked;
+            const checkScreens = document.getElementById('edit-employee-check-screens').checked;
+            const checkRooms = document.getElementById('edit-employee-check-rooms').checked;
+            
+            const color = document.getElementById('edit-employee-color').value;
+            const showBorder = document.getElementById('edit-employee-show-border').checked;
+            
             if (!name) {
                 alert('נא להזין שם עובד');
                 return;
@@ -1042,7 +1152,15 @@
                     name: name,
                     isManager: isManager,
                     canWFH: canWFH,
-                    weekendOnCall: weekendOnCall
+                    weekendOnCall: weekendOnCall,
+                    checkPermissions: {
+                        qf: checkQF,
+                        apps: checkApps,
+                        screens: checkScreens,
+                        rooms: checkRooms
+                    },
+                    color: color,
+                    showBorder: showBorder
                 };
                 
                 // Re-sort employees
@@ -1083,10 +1201,21 @@
                 return;
             }
 
-            container.innerHTML = employees.map(emp => `
+            container.innerHTML = employees.map(emp => {
+                const perms = emp.checkPermissions || {};
+                const permBadges = [];
+                if (perms.qf) permBadges.push('🔴 QF');
+                if (perms.apps) permBadges.push('📱 אפליקציות');
+                if (perms.screens) permBadges.push('🖥️ מסכים');
+                if (perms.rooms) permBadges.push('🚪 חדרים');
+                
+                const borderStyle = emp.isManager && emp.showBorder !== false ? 
+                    'border: 3px solid #4CAF50; box-shadow: 0 0 0 2px white, 0 0 0 4px #4CAF50;' : '';
+                
+                return `
                 <div class="employee-item ${emp.isManager ? 'manager' : ''}">
                     <div class="employee-info">
-                        <div style="width: 40px; height: 40px; background: ${emp.color}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.1em; ${emp.isManager ? 'border: 3px solid #4CAF50; box-shadow: 0 0 0 2px white, 0 0 0 4px #4CAF50;' : ''}">
+                        <div style="width: 40px; height: 40px; background: ${emp.color}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.1em; ${borderStyle}">
                             ${emp.employeeNumber || employees.indexOf(emp) + 1}
                         </div>
                         <div>
@@ -1095,6 +1224,7 @@
                                 ${emp.isManager ? '<span class="badge badge-manager">⭐ אחמ"ש</span>' : ''}
                                 ${emp.canWFH ? '<span class="badge badge-wfh">🏠 עבודה מהבית</span>' : ''}
                                 ${emp.weekendOnCall ? '<span class="badge badge-oncall">📞 כונן סופ"ש</span>' : ''}
+                                ${permBadges.map(p => `<span class="badge" style="background: #FF9800; color: white;">${p}</span>`).join(' ')}
                             </div>
                         </div>
                     </div>
@@ -1103,7 +1233,7 @@
                         <button class="btn-icon btn-delete" onclick="deleteEmployee(${emp.id})">🗑️ מחק</button>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function addShift() {
@@ -1334,10 +1464,37 @@
                         </div>
                     </div>
                     <div class="item-actions">
+                        <button class="btn-icon" onclick="editConstraint(${c.id})">✏️ ערוך</button>
                         <button class="btn-icon btn-delete" onclick="deleteConstraint(${c.id})">🗑️ מחק</button>
                     </div>
                 </div>
             `}).join('');
+        }
+
+        function editConstraint(id) {
+            const constraint = constraints.find(c => c.id === id);
+            if (!constraint) return;
+            
+            // Set values in form
+            document.getElementById('constraint-employee').value = constraint.employeeId;
+            document.getElementById('constraint-day').value = constraint.day;
+            
+            if (constraint.shiftStart) {
+                const shiftIndex = shifts.findIndex(s => s.start === constraint.shiftStart);
+                if (shiftIndex !== -1) {
+                    document.getElementById('constraint-shift').value = shiftIndex;
+                }
+            }
+            
+            document.getElementById('constraint-block-day').checked = constraint.blockDay || false;
+            document.getElementById('constraint-wfh-required').checked = constraint.wfhRequired || false;
+            document.getElementById('constraint-permanent').checked = constraint.isPermanent || false;
+            
+            // Delete old constraint
+            deleteConstraint(id);
+            
+            // Scroll to form
+            document.getElementById('constraints-tab').scrollIntoView({ behavior: 'smooth' });
         }
 
         function generateSchedule() {
@@ -1658,7 +1815,8 @@
                                 const emp = assignment.employee;
                                 const textColor = getContrastColor(emp.color);
                                 const empNum = emp.employeeNumber || employees.findIndex(e => e.id === emp.id) + 1;
-                                const managerBorder = emp.isManager ? 'border: 3px solid #FFD700; box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);' : '';
+                                const managerBorder = emp.isManager && emp.showBorder !== false ? 'border: 3px solid #FFD700; box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);' : '';
+                                const isWeekend = day.dayOfWeek === 5 || day.dayOfWeek === 6;
                                 html += `
                                     <div class="cell-employee" style="background: ${emp.color}; color: ${textColor}; margin-bottom: 5px; ${managerBorder}" draggable="true" ondragstart="dragStart(event, ${emp.id}, '${shiftTime}', ${day.dayOfWeek})" ondrop="drop(event, ${emp.id}, '${shiftTime}', ${day.dayOfWeek})" ondragover="allowDrop(event)">
                                         <span style="font-weight: bold; font-size: 1.1em;">#${empNum}</span>
@@ -1666,7 +1824,7 @@
                                         <div class="cell-icons" style="display: flex; gap: 4px; margin-right: 5px;">
                                             ${assignment.isWFH ? '<span title="עבודה מהבית" style="background: #fff; color: #2196F3; padding: 3px 7px; border-radius: 4px; font-weight: bold; font-size: 1.1em; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">🏠</span>' : ''}
                                             ${emp.isManager ? '<span title="אחמ״ש" style="background: #fff; color: #4CAF50; padding: 3px 7px; border-radius: 4px; font-size: 1.1em; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">⭐</span>' : ''}
-                                            ${emp.weekendOnCall && (day.dayOfWeek === 5 || day.dayOfWeek === 6) ? '<span title="כונן סופ״ש" style="background: #fff; color: #9C27B0; padding: 3px 7px; border-radius: 4px; font-size: 1.1em; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">📞</span>' : ''}
+                                            ${emp.weekendOnCall && isWeekend ? '<span title="כונן סופ״ש" style="background: #fff; color: #9C27B0; padding: 3px 7px; border-radius: 4px; font-size: 1.1em; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">📞</span>' : ''}
                                         </div>
                                     </div>
                                 `;
@@ -1679,6 +1837,71 @@
                     html += '</tr>';
                 });
 
+                html += '</tbody></table>';
+                
+                // Add morning checks section
+                html += '<h4 style="margin-top: 30px; color: #667eea;">בדיקות בוקר יומיות</h4>';
+                html += '<table style="margin-top: 15px;">';
+                html += '<thead><tr>';
+                html += '<th class="time-header">בדיקה</th>';
+                
+                week.forEach(day => {
+                    const dateStr = day.date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
+                    html += `<th class="days-header">${day.dayName}<br>${dateStr}</th>`;
+                });
+                
+                html += '</tr></thead><tbody>';
+                
+                // Define morning checks
+                const morningChecks = [
+                    { name: 'QF (קריטי)', key: 'qf', icon: '🔴' },
+                    { name: 'בדיקת אפליקציות', key: 'apps', icon: '📱' },
+                    { name: 'בדיקת מסכים', key: 'screens', icon: '🖥️' },
+                    { name: 'בדיקת חדרי ישיבות', key: 'rooms', icon: '🚪' }
+                ];
+                
+                morningChecks.forEach(check => {
+                    html += '<tr>';
+                    html += `<td class="time-cell">${check.icon} ${check.name}</td>`;
+                    
+                    week.forEach(day => {
+                        html += '<td>';
+                        
+                        // Find employees in first 3 morning shifts (06:45, 07:00, 07:30)
+                        const morningShifts = day.shifts.filter(s => {
+                            const minutes = timeToMinutes(s.start);
+                            return minutes >= 405 && minutes <= 450; // 06:45 to 07:30
+                        });
+                        
+                        const eligibleEmployees = [];
+                        morningShifts.forEach(shift => {
+                            shift.employees.forEach(assignment => {
+                                const emp = assignment.employee;
+                                const perms = emp.checkPermissions || {};
+                                if (perms[check.key]) {
+                                    eligibleEmployees.push(emp);
+                                }
+                            });
+                        });
+                        
+                        if (eligibleEmployees.length > 0) {
+                            const emp = eligibleEmployees[0]; // Pick first eligible
+                            const textColor = getContrastColor(emp.color);
+                            html += `
+                                <div style="background: ${emp.color}; color: ${textColor}; padding: 8px; border-radius: 5px; font-weight: bold; text-align: center;">
+                                    #${emp.employeeNumber || employees.findIndex(e => e.id === emp.id) + 1} ${emp.name}
+                                </div>
+                            `;
+                        } else {
+                            html += '<span style="color: #999;">אין עובד מורשה</span>';
+                        }
+                        
+                        html += '</td>';
+                    });
+                    
+                    html += '</tr>';
+                });
+                
                 html += '</tbody></table>';
             });
 
@@ -1868,13 +2091,27 @@
                         
                         if (data.employees) {
                             employees = data.employees;
-                            // Ensure all employees have numbers
+                            // Ensure all employees have numbers and default values
                             employees.forEach((emp, index) => {
                                 if (!emp.employeeNumber) {
                                     emp.employeeNumber = index + 1;
                                 }
                                 if (!emp.hasOwnProperty('wfhThisWeek')) {
                                     emp.wfhThisWeek = 0;
+                                }
+                                if (!emp.checkPermissions) {
+                                    emp.checkPermissions = {
+                                        qf: false,
+                                        apps: false,
+                                        screens: false,
+                                        rooms: false
+                                    };
+                                }
+                                if (!emp.color) {
+                                    emp.color = employeeColors[index % employeeColors.length];
+                                }
+                                if (!emp.hasOwnProperty('showBorder')) {
+                                    emp.showBorder = true;
                                 }
                             });
                         }
@@ -1937,6 +2174,20 @@
                     }
                     if (!emp.hasOwnProperty('wfhThisWeek')) {
                         emp.wfhThisWeek = 0;
+                    }
+                    if (!emp.checkPermissions) {
+                        emp.checkPermissions = {
+                            qf: false,
+                            apps: false,
+                            screens: false,
+                            rooms: false
+                        };
+                    }
+                    if (!emp.color) {
+                        emp.color = employeeColors[index % employeeColors.length];
+                    }
+                    if (!emp.hasOwnProperty('showBorder')) {
+                        emp.showBorder = true;
                     }
                 });
             }
