@@ -1698,8 +1698,7 @@
         }
 
         function assignFridayShift(shift, weekNumber, assignedToday) {
-            // Friday: 3 regular employees + 1 manager
-            // One employee works 06:45-13:00, two work 07:30-13:30
+            // Friday: 1 employee at 06:45, 1 employee at 07:00, 2 employees + 1 manager at 07:30
             const assigned = [];
             const shiftMinutes = timeToMinutes(shift.start);
             
@@ -1715,6 +1714,18 @@
             });
             
             if (shiftMinutes === 405) { // 06:45 - one employee
+                const regularEmployees = availableForFriday.filter(e => !e.isManager);
+                if (regularEmployees.length > 0) {
+                    const selected = regularEmployees[Math.floor(Math.random() * regularEmployees.length)];
+                    selected.lastFridayWeek = weekNumber;
+                    assignedToday.add(selected.id);
+                    assigned.push({
+                        employee: selected,
+                        isWFH: true,
+                        isWeekendOnCall: false
+                    });
+                }
+            } else if (shiftMinutes === 420) { // 07:00 - one employee
                 const regularEmployees = availableForFriday.filter(e => !e.isManager);
                 if (regularEmployees.length > 0) {
                     const selected = regularEmployees[Math.floor(Math.random() * regularEmployees.length)];
@@ -1840,7 +1851,7 @@
                 html += '</tbody></table>';
                 
                 // Add morning checks section
-                html += '<h4 style="margin-top: 30px; color: #667eea;">בדיקות בוקר יומיות</h4>';
+                html += '<h4 style="margin-top: 30px; color: #667eea; font-size: 1.3em;">📋 בדיקות בוקר יומיות</h4>';
                 html += '<table style="margin-top: 15px;">';
                 html += '<thead><tr>';
                 html += '<th class="time-header">בדיקה</th>';
@@ -1854,46 +1865,76 @@
                 
                 // Define morning checks
                 const morningChecks = [
+                    { name: 'בדיקות בוקר (06:45)', key: 'morning', icon: '☀️' },
                     { name: 'QF (קריטי)', key: 'qf', icon: '🔴' },
                     { name: 'בדיקת אפליקציות', key: 'apps', icon: '📱' },
                     { name: 'בדיקת מסכים', key: 'screens', icon: '🖥️' },
                     { name: 'בדיקת חדרי ישיבות', key: 'rooms', icon: '🚪' }
                 ];
                 
-                morningChecks.forEach(check => {
+                morningChecks.forEach((check, checkIndex) => {
                     html += '<tr>';
-                    html += `<td class="time-cell">${check.icon} ${check.name}</td>`;
+                    html += `<td class="time-cell" style="font-weight: bold;">${check.icon} ${check.name}</td>`;
                     
                     week.forEach(day => {
                         html += '<td>';
                         
-                        // Find employees in first 3 morning shifts (06:45, 07:00, 07:30)
-                        const morningShifts = day.shifts.filter(s => {
-                            const minutes = timeToMinutes(s.start);
-                            return minutes >= 405 && minutes <= 450; // 06:45 to 07:30
-                        });
-                        
-                        const eligibleEmployees = [];
-                        morningShifts.forEach(shift => {
-                            shift.employees.forEach(assignment => {
-                                const emp = assignment.employee;
-                                const perms = emp.checkPermissions || {};
-                                if (perms[check.key]) {
-                                    eligibleEmployees.push(emp);
-                                }
-                            });
-                        });
-                        
-                        if (eligibleEmployees.length > 0) {
-                            const emp = eligibleEmployees[0]; // Pick first eligible
-                            const textColor = getContrastColor(emp.color);
-                            html += `
-                                <div style="background: ${emp.color}; color: ${textColor}; padding: 8px; border-radius: 5px; font-weight: bold; text-align: center;">
-                                    #${emp.employeeNumber || employees.findIndex(e => e.id === emp.id) + 1} ${emp.name}
-                                </div>
-                            `;
+                        if (check.key === 'morning') {
+                            // Special case: 06:45 shift employee does ALL morning checks
+                            const openingShift = day.shifts.find(s => timeToMinutes(s.start) === 405);
+                            
+                            if (openingShift && openingShift.employees.length > 0) {
+                                const emp = openingShift.employees[0].employee;
+                                const textColor = getContrastColor(emp.color);
+                                html += `
+                                    <div style="background: ${emp.color}; color: ${textColor}; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center; border: 2px solid #4CAF50;">
+                                        #${emp.employeeNumber || employees.findIndex(e => e.id === emp.id) + 1} ${emp.name}
+                                        <div style="font-size: 0.8em; margin-top: 5px; opacity: 0.9;">עושה את כל בדיקות הבוקר</div>
+                                    </div>
+                                `;
+                            } else {
+                                html += '<span style="color: #999;">אין עובד פתיחה</span>';
+                            }
                         } else {
-                            html += '<span style="color: #999;">אין עובד מורשה</span>';
+                            // For other checks: find employees in 07:00 and 07:30 shifts
+                            // Exclude the 06:45 employee
+                            const openingShift = day.shifts.find(s => timeToMinutes(s.start) === 405);
+                            const openingEmpId = openingShift?.employees[0]?.employee?.id;
+                            
+                            const morningShifts = day.shifts.filter(s => {
+                                const minutes = timeToMinutes(s.start);
+                                return minutes === 420 || minutes === 450; // 07:00 or 07:30
+                            });
+                            
+                            // Collect all eligible employees (excluding opening employee)
+                            const eligibleEmployees = [];
+                            const usedEmployeeIds = new Set();
+                            
+                            morningShifts.forEach(shift => {
+                                shift.employees.forEach(assignment => {
+                                    const emp = assignment.employee;
+                                    if (emp.id !== openingEmpId && !usedEmployeeIds.has(emp.id)) {
+                                        const perms = emp.checkPermissions || {};
+                                        if (perms[check.key]) {
+                                            eligibleEmployees.push(emp);
+                                        }
+                                    }
+                                });
+                            });
+                            
+                            if (eligibleEmployees.length > 0) {
+                                // Rotate through employees to distribute checks
+                                const selectedEmp = eligibleEmployees[checkIndex % eligibleEmployees.length];
+                                const textColor = getContrastColor(selectedEmp.color);
+                                html += `
+                                    <div style="background: ${selectedEmp.color}; color: ${textColor}; padding: 8px; border-radius: 5px; font-weight: bold; text-align: center;">
+                                        #${selectedEmp.employeeNumber || employees.findIndex(e => e.id === selectedEmp.id) + 1} ${selectedEmp.name}
+                                    </div>
+                                `;
+                                usedEmployeeIds.add(selectedEmp.id);
+                            } else {
+                                html += '<span style="color: #999;">אין עובד מורשה</span>';
+                            }
                         }
                         
                         html += '</td>';
@@ -1902,6 +1943,50 @@
                     html += '</tr>';
                 });
                 
+                html += '</tbody></table>';
+                
+                // Add weekend on-call section
+                html += '<h4 style="margin-top: 30px; color: #667eea; font-size: 1.3em;">📞 כונן סופ"ש</h4>';
+                html += '<table style="margin-top: 15px;">';
+                html += '<thead><tr>';
+                html += '<th class="time-header">תפקיד</th>';
+                
+                week.forEach(day => {
+                    const dateStr = day.date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
+                    html += `<th class="days-header">${day.dayName}<br>${dateStr}</th>`;
+                });
+                
+                html += '</tr></thead><tbody>';
+                html += '<tr>';
+                html += '<td class="time-cell" style="font-weight: bold;">📞 כונן סופ"ש</td>';
+                
+                week.forEach(day => {
+                    const isWeekend = day.dayOfWeek === 5 || day.dayOfWeek === 6;
+                    html += '<td>';
+                    
+                    if (isWeekend) {
+                        // Find weekend on-call employee
+                        const onCallEmp = employees.find(e => e.weekendOnCall);
+                        
+                        if (onCallEmp) {
+                            const textColor = '#FFFFFF';
+                            html += `
+                                <div style="background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%); color: white; padding: 12px; border-radius: 5px; font-weight: bold; text-align: center; border: 3px solid #006064; box-shadow: 0 3px 10px rgba(0, 188, 212, 0.4);">
+                                    📞 #${onCallEmp.employeeNumber || employees.findIndex(e => e.id === onCallEmp.id) + 1} ${onCallEmp.name}
+                                    <div style="font-size: 0.85em; margin-top: 5px; opacity: 0.95;">כונן ${day.dayOfWeek === 5 ? 'שישי' : 'שבת'}</div>
+                                </div>
+                            `;
+                        } else {
+                            html += '<span style="color: #999;">אין כונן</span>';
+                        }
+                    } else {
+                        html += '<span style="color: #ccc;">-</span>';
+                    }
+                    
+                    html += '</td>';
+                });
+                
+                html += '</tr>';
                 html += '</tbody></table>';
             });
 
