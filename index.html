@@ -685,7 +685,21 @@
 
                 <div class="form-group">
                     <label class="checkbox-label">
-                        <span>אילוץ קבוע (✓)</span>
+                        <span>🚫 חסימת יום שלם (לא יעבוד בכלל ביום זה)</span>
+                        <input type="checkbox" id="constraint-block-day">
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <span>🏡 חייב עבודה מהבית (במשמרת זו)</span>
+                        <input type="checkbox" id="constraint-wfh-required">
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <span>✓ אילוץ קבוע (העובד אישר)</span>
                         <input type="checkbox" id="constraint-permanent">
                     </label>
                 </div>
@@ -1072,14 +1086,14 @@
             container.innerHTML = employees.map(emp => `
                 <div class="employee-item ${emp.isManager ? 'manager' : ''}">
                     <div class="employee-info">
-                        <div style="width: 40px; height: 40px; background: ${emp.color}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.1em;">
+                        <div style="width: 40px; height: 40px; background: ${emp.color}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.1em; ${emp.isManager ? 'border: 3px solid #4CAF50; box-shadow: 0 0 0 2px white, 0 0 0 4px #4CAF50;' : ''}">
                             ${emp.employeeNumber || employees.indexOf(emp) + 1}
                         </div>
                         <div>
                             <div class="employee-name">${emp.name}</div>
                             <div class="employee-badges">
-                                ${emp.isManager ? '<span class="badge badge-manager">👔 אחמ"ש</span>' : ''}
-                                ${emp.canWFH ? '<span class="badge badge-wfh">🏡 עבודה מהבית</span>' : ''}
+                                ${emp.isManager ? '<span class="badge badge-manager">⭐ אחמ"ש</span>' : ''}
+                                ${emp.canWFH ? '<span class="badge badge-wfh">🏠 עבודה מהבית</span>' : ''}
                                 ${emp.weekendOnCall ? '<span class="badge badge-oncall">📞 כונן סופ"ש</span>' : ''}
                             </div>
                         </div>
@@ -1233,24 +1247,32 @@
             const day = parseInt(document.getElementById('constraint-day').value);
             const shiftIndex = parseInt(document.getElementById('constraint-shift').value);
             const isPermanent = document.getElementById('constraint-permanent').checked;
+            const blockDay = document.getElementById('constraint-block-day').checked;
+            const wfhRequired = document.getElementById('constraint-wfh-required').checked;
 
-            if (!employeeId || isNaN(day) || isNaN(shiftIndex)) {
+            if (!employeeId || isNaN(day)) {
                 alert('נא למלא את כל השדות');
                 return;
             }
 
             const employee = employees.find(e => e.id === employeeId);
-            const shift = shifts[shiftIndex];
-
-            const constraint = {
+            
+            let constraint = {
                 id: Date.now(),
                 employeeId: employeeId,
                 employeeName: employee.name,
                 day: day,
-                shiftStart: shift.start,
-                shiftEnd: shift.end,
-                isPermanent: isPermanent
+                isPermanent: isPermanent,
+                blockDay: blockDay,
+                wfhRequired: wfhRequired
             };
+
+            // Add shift info if not blocking entire day
+            if (!blockDay && !isNaN(shiftIndex)) {
+                const shift = shifts[shiftIndex];
+                constraint.shiftStart = shift.start;
+                constraint.shiftEnd = shift.end;
+            }
 
             constraints.push(constraint);
             
@@ -1264,8 +1286,10 @@
             saveData();
             renderConstraints();
 
-            // Reset permanent checkbox
+            // Reset checkboxes
             document.getElementById('constraint-permanent').checked = false;
+            document.getElementById('constraint-block-day').checked = false;
+            document.getElementById('constraint-wfh-required').checked = false;
         }
 
         function deleteConstraint(id) {
@@ -1288,12 +1312,24 @@
                 return;
             }
 
-            container.innerHTML = constraints.map(c => `
+            container.innerHTML = constraints.map(c => {
+                let constraintText = '';
+                if (c.blockDay) {
+                    constraintText = `🚫 חסום ביום ${days[c.day]}`;
+                } else if (c.wfhRequired && c.shiftStart) {
+                    constraintText = `🏡 עבודה מהבית ביום ${days[c.day]} | ${formatTime(c.shiftStart)} - ${formatTime(c.shiftEnd)}`;
+                } else if (c.shiftStart) {
+                    constraintText = `יום ${days[c.day]} | ${formatTime(c.shiftStart)} - ${formatTime(c.shiftEnd)}`;
+                } else {
+                    constraintText = `יום ${days[c.day]}`;
+                }
+                
+                return `
                 <div class="constraint-item">
                     <div>
                         <strong style="font-size: 1.1em;">${c.employeeName}</strong>
                         <div style="color: #666; margin-top: 5px;">
-                            יום ${days[c.day]} | ${formatTime(c.shiftStart)} - ${formatTime(c.shiftEnd)}
+                            ${constraintText}
                             ${c.isPermanent ? ' <span class="badge badge-fixed">✓ קבוע</span>' : ''}
                         </div>
                     </div>
@@ -1301,7 +1337,7 @@
                         <button class="btn-icon btn-delete" onclick="deleteConstraint(${c.id})">🗑️ מחק</button>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function generateSchedule() {
@@ -1411,11 +1447,21 @@
                     return false;
                 }
                 
-                // Check constraints
+                // Check for block day constraint
+                const hasBlockDay = constraints.some(c => 
+                    c.employeeId === emp.id && 
+                    c.day === dayOfWeek && 
+                    c.blockDay
+                );
+                
+                if (hasBlockDay) return false;
+                
+                // Check constraints for this specific shift
                 const hasConstraint = constraints.some(c => 
                     c.employeeId === emp.id && 
                     c.day === dayOfWeek && 
-                    c.shiftStart === shift.start
+                    c.shiftStart === shift.start &&
+                    !c.wfhRequired // Not a WFH requirement
                 );
                 
                 if (hasConstraint) return false;
@@ -1465,7 +1511,15 @@
             }
 
             selectedEmployees.forEach(emp => {
-                const isWFH = shiftMinutes === 720 || shiftMinutes === 900; // 12:00 or 15:00
+                // Check if WFH is required by constraint
+                const wfhConstraint = constraints.find(c => 
+                    c.employeeId === emp.id && 
+                    c.day === dayOfWeek && 
+                    c.shiftStart === shift.start &&
+                    c.wfhRequired
+                );
+                
+                const isWFH = wfhConstraint || shiftMinutes === 720 || shiftMinutes === 900; // 12:00 or 15:00
                 // Managers work from home once per week
                 const managerWFH = emp.isManager && (emp.wfhThisWeek || 0) < 1 && Math.random() < 0.2;
                 
@@ -1604,14 +1658,15 @@
                                 const emp = assignment.employee;
                                 const textColor = getContrastColor(emp.color);
                                 const empNum = emp.employeeNumber || employees.findIndex(e => e.id === emp.id) + 1;
+                                const managerBorder = emp.isManager ? 'border: 3px solid #FFD700; box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);' : '';
                                 html += `
-                                    <div class="cell-employee" style="background: ${emp.color}; color: ${textColor}; margin-bottom: 5px;" draggable="true" ondragstart="dragStart(event, ${emp.id}, '${shiftTime}', ${day.dayOfWeek})" ondrop="drop(event)" ondragover="allowDrop(event)">
-                                        <span style="font-weight: bold;">#${empNum}</span>
-                                        <span>${emp.name}</span>
-                                        <div class="cell-icons">
-                                            ${assignment.isWFH ? '<span class="icon-wfh" style="background: rgba(255,255,255,0.9); color: #2196F3; padding: 2px 6px; border-radius: 3px; font-weight: bold;">🏡</span>' : ''}
-                                            ${emp.isManager ? '<span class="icon-wfh" style="background: rgba(255,255,255,0.9); color: #4CAF50; padding: 2px 6px; border-radius: 3px;">👔</span>' : ''}
-                                            ${emp.weekendOnCall && (day.dayOfWeek === 5 || day.dayOfWeek === 6) ? '<span class="icon-wfh" style="background: rgba(255,255,255,0.9); color: #9C27B0; padding: 2px 6px; border-radius: 3px;">📞</span>' : ''}
+                                    <div class="cell-employee" style="background: ${emp.color}; color: ${textColor}; margin-bottom: 5px; ${managerBorder}" draggable="true" ondragstart="dragStart(event, ${emp.id}, '${shiftTime}', ${day.dayOfWeek})" ondrop="drop(event, ${emp.id}, '${shiftTime}', ${day.dayOfWeek})" ondragover="allowDrop(event)">
+                                        <span style="font-weight: bold; font-size: 1.1em;">#${empNum}</span>
+                                        <span style="font-size: 0.95em;">${emp.name}</span>
+                                        <div class="cell-icons" style="display: flex; gap: 4px; margin-right: 5px;">
+                                            ${assignment.isWFH ? '<span title="עבודה מהבית" style="background: #fff; color: #2196F3; padding: 3px 7px; border-radius: 4px; font-weight: bold; font-size: 1.1em; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">🏠</span>' : ''}
+                                            ${emp.isManager ? '<span title="אחמ״ש" style="background: #fff; color: #4CAF50; padding: 3px 7px; border-radius: 4px; font-size: 1.1em; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">⭐</span>' : ''}
+                                            ${emp.weekendOnCall && (day.dayOfWeek === 5 || day.dayOfWeek === 6) ? '<span title="כונן סופ״ש" style="background: #fff; color: #9C27B0; padding: 3px 7px; border-radius: 4px; font-size: 1.1em; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">📞</span>' : ''}
                                         </div>
                                     </div>
                                 `;
@@ -1649,6 +1704,7 @@
             draggedShift = shiftTime;
             draggedDay = dayOfWeek;
             event.dataTransfer.effectAllowed = 'move';
+            event.target.style.opacity = '0.5';
         }
 
         function allowDrop(event) {
@@ -1656,24 +1712,79 @@
             event.dataTransfer.dropEffect = 'move';
         }
 
-        function drop(event) {
+        function drop(event, targetEmployeeId, targetShiftTime, targetDayOfWeek) {
             event.preventDefault();
-            // Extract target information from the cell
-            const target = event.target.closest('.cell-employee');
-            if (!target) return;
+            event.stopPropagation();
             
-            // This would require more complex logic to swap employees
-            // For now, show a message
-            alert('תכונת החלפת משמרות תפותח בהמשך. כרגע ניתן לערוך ידנית את השיבוץ.');
+            // Reset opacity
+            document.querySelectorAll('.cell-employee').forEach(el => {
+                el.style.opacity = '1';
+            });
+            
+            if (!draggedEmployee || !targetEmployeeId) return;
+            
+            // Don't swap with self
+            if (draggedEmployee === targetEmployeeId && draggedShift === targetShiftTime && draggedDay === targetDayOfWeek) {
+                return;
+            }
+            
+            // Validate the swap
+            const errors = validateShiftSwap(draggedEmployee, targetEmployeeId, draggedShift, targetShiftTime, targetDayOfWeek);
+            
+            if (errors.length > 0) {
+                alert('❌ לא ניתן להחליף:\n\n' + errors.join('\n'));
+                return;
+            }
+            
+            // Perform the swap
+            if (confirm(`האם להחליף בין העובדים במשמרות אלו?`)) {
+                swapEmployeesInSchedule(draggedEmployee, draggedShift, draggedDay, targetEmployeeId, targetShiftTime, targetDayOfWeek);
+                alert('✅ ההחלפה בוצעה בהצלחה!');
+            }
         }
 
-        function validateShiftSwap(employee1, employee2, shift1, shift2, day) {
+        function swapEmployeesInSchedule(emp1Id, shift1, day1, emp2Id, shift2, day2) {
+            if (!currentSchedule) return;
+            
+            // Find the days in the schedule
+            const day1Schedule = currentSchedule.days.find(d => d.dayOfWeek === day1);
+            const day2Schedule = currentSchedule.days.find(d => d.dayOfWeek === day2);
+            
+            if (!day1Schedule || !day2Schedule) return;
+            
+            // Find the shifts
+            const shift1Obj = day1Schedule.shifts.find(s => s.start === shift1);
+            const shift2Obj = day2Schedule.shifts.find(s => s.start === shift2);
+            
+            if (!shift1Obj || !shift2Obj) return;
+            
+            // Find employee assignments
+            const emp1Assignment = shift1Obj.employees.find(e => e.employee.id === emp1Id);
+            const emp2Assignment = shift2Obj.employees.find(e => e.employee.id === emp2Id);
+            
+            if (!emp1Assignment || !emp2Assignment) return;
+            
+            // Swap employees
+            const temp = emp1Assignment.employee;
+            emp1Assignment.employee = emp2Assignment.employee;
+            emp2Assignment.employee = temp;
+            
+            // Re-render the schedule
+            renderSchedule();
+        }
+
+        function validateShiftSwap(employee1Id, employee2Id, shift1, shift2, targetDay) {
             const errors = [];
             
-            // Check if employee is manager and shift is valid
-            const emp1 = employees.find(e => e.id === employee1);
-            const emp2 = employees.find(e => e.id === employee2);
+            const emp1 = employees.find(e => e.id === employee1Id);
+            const emp2 = employees.find(e => e.id === employee2Id);
             
+            if (!emp1 || !emp2) {
+                errors.push('לא נמצא אחד העובדים');
+                return errors;
+            }
+            
+            // Check if emp1 can work in shift2
             if (emp1.isManager) {
                 const shiftMinutes = timeToMinutes(shift2);
                 if (![450, 540, 600].includes(shiftMinutes)) {
@@ -1681,15 +1792,44 @@
                 }
             }
             
-            // Check constraints
-            const hasConstraint = constraints.some(c => 
-                c.employeeId === employee1 && 
-                c.day === day && 
-                c.shiftStart === shift2
+            // Check if emp2 can work in shift1
+            if (emp2.isManager) {
+                const shiftMinutes = timeToMinutes(shift1);
+                if (![450, 540, 600].includes(shiftMinutes)) {
+                    errors.push(`${emp2.name} הוא אחמ"ש ויכול לעבוד רק ב-07:30, 09:00, 10:00`);
+                }
+            }
+            
+            // Check constraints for emp1
+            const hasConstraint1 = constraints.some(c => 
+                (c.employeeId === employee1Id && c.day === targetDay && 
+                 (c.blockDay || c.shiftStart === shift2))
             );
             
-            if (hasConstraint) {
+            if (hasConstraint1) {
                 errors.push(`ל-${emp1.name} יש אילוץ על משמרת זו`);
+            }
+            
+            // Check constraints for emp2
+            const hasConstraint2 = constraints.some(c => 
+                (c.employeeId === employee2Id && c.day === draggedDay && 
+                 (c.blockDay || c.shiftStart === shift1))
+            );
+            
+            if (hasConstraint2) {
+                errors.push(`ל-${emp2.name} יש אילוץ על המשמרת המקורית`);
+            }
+            
+            // Check WFH restrictions
+            const shift2Minutes = timeToMinutes(shift2);
+            const shift1Minutes = timeToMinutes(shift1);
+            
+            if ((shift2Minutes === 720 || shift2Minutes === 900) && !emp1.canWFH) {
+                errors.push(`${emp1.name} לא מורשה לעבודה מהבית`);
+            }
+            
+            if ((shift1Minutes === 720 || shift1Minutes === 900) && !emp2.canWFH) {
+                errors.push(`${emp2.name} לא מורשה לעבודה מהבית`);
             }
             
             return errors;
