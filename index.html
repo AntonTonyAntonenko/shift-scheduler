@@ -569,6 +569,7 @@
             <button class="tab" onclick="switchTab('shifts')">⏰ משמרות</button>
             <button class="tab" onclick="switchTab('constraints')">🚫 אילוצים</button>
             <button class="tab" onclick="switchTab('schedule')">📅 שיבוץ</button>
+            <button class="tab" onclick="switchTab('settings')">⚙️ הגדרות</button>
         </div>
 
         <!-- Employees Tab -->
@@ -769,6 +770,88 @@
 
             <div class="section">
                 <div id="schedule-display" class="schedule-grid"></div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content">
+            <div class="section">
+                <h2>⚙️ הגדרות מערכת</h2>
+                
+                <h3 style="color: #667eea; margin: 20px 0 15px 0;">🎨 עיצוב</h3>
+                
+                <div class="form-group">
+                    <label>אייקון אחמ"ש</label>
+                    <select id="manager-icon" onchange="saveSettings()" style="font-size: 1.2em;">
+                        <option value="⭐">⭐ כוכב</option>
+                        <option value="👔">👔 עניבה</option>
+                        <option value="💼">💼 תיק</option>
+                        <option value="🎩">🎩 כובע</option>
+                        <option value="👨‍💼">👨‍💼 איש עסקים</option>
+                        <option value="M">M (אות)</option>
+                    </select>
+                </div>
+                
+                <h3 style="color: #667eea; margin: 30px 0 15px 0;">📋 שמות בדיקות</h3>
+                
+                <div class="form-group">
+                    <label>שם בדיקה 1</label>
+                    <input type="text" id="check-qf-name" value="QF" onchange="saveSettings()">
+                </div>
+                
+                <div class="form-group">
+                    <label>אייקון בדיקה 1</label>
+                    <input type="text" id="check-qf-icon" value="🔴" maxlength="2" onchange="saveSettings()">
+                </div>
+                
+                <div class="form-group">
+                    <label>שם בדיקה 2</label>
+                    <input type="text" id="check-apps-name" value="בדיקת אפליקציות" onchange="saveSettings()">
+                </div>
+                
+                <div class="form-group">
+                    <label>אייקון בדיקה 2</label>
+                    <input type="text" id="check-apps-icon" value="📱" maxlength="2" onchange="saveSettings()">
+                </div>
+                
+                <div class="form-group">
+                    <label>שם בדיקה 3</label>
+                    <input type="text" id="check-screens-name" value="בדיקת מסכים" onchange="saveSettings()">
+                </div>
+                
+                <div class="form-group">
+                    <label>אייקון בדיקה 3</label>
+                    <input type="text" id="check-screens-icon" value="🖥️" maxlength="2" onchange="saveSettings()">
+                </div>
+                
+                <div class="form-group">
+                    <label>שם בדיקה 4</label>
+                    <input type="text" id="check-rooms-name" value="בדיקת חדרי ישיבות" onchange="saveSettings()">
+                </div>
+                
+                <div class="form-group">
+                    <label>אייקון בדיקה 4</label>
+                    <input type="text" id="check-rooms-icon" value="🚪" maxlength="2" onchange="saveSettings()">
+                </div>
+                
+                <button onclick="saveSettings()">💾 שמור הגדרות</button>
+                <button onclick="resetSettings()" class="btn-secondary" style="margin-right: 10px;">🔄 אפס להגדרות ברירת מחדל</button>
+            </div>
+
+            <div class="section">
+                <h2>📤 ייצוא ושיתוף</h2>
+                
+                <button onclick="shareWhatsApp()" style="background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); margin-left: 10px;">
+                    💬 שתף בוואטסאפ
+                </button>
+                
+                <button onclick="downloadScheduleImage()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    📸 שמור כתמונה
+                </button>
+                
+                <p style="margin-top: 15px; color: #666; font-size: 0.9em;">
+                    💡 שמירה כתמונה מאפשרת לך לשתף את השיבוץ בכל אפליקציה
+                </p>
             </div>
         </div>
     </div>
@@ -1866,10 +1949,10 @@
                 // Define morning checks
                 const morningChecks = [
                     { name: 'בדיקות בוקר (06:45)', key: 'morning', icon: '☀️' },
-                    { name: 'QF (קריטי)', key: 'qf', icon: '🔴' },
-                    { name: 'בדיקת אפליקציות', key: 'apps', icon: '📱' },
-                    { name: 'בדיקת מסכים', key: 'screens', icon: '🖥️' },
-                    { name: 'בדיקת חדרי ישיבות', key: 'rooms', icon: '🚪' }
+                    { name: localStorage.getItem('check_qf_name') || 'QF', key: 'qf', icon: localStorage.getItem('check_qf_icon') || '🔴' },
+                    { name: localStorage.getItem('check_apps_name') || 'בדיקת אפליקציות', key: 'apps', icon: localStorage.getItem('check_apps_icon') || '📱' },
+                    { name: localStorage.getItem('check_screens_name') || 'בדיקת מסכים', key: 'screens', icon: localStorage.getItem('check_screens_icon') || '🖥️' },
+                    { name: localStorage.getItem('check_rooms_name') || 'בדיקת חדרי ישיבות', key: 'rooms', icon: localStorage.getItem('check_rooms_icon') || '🚪' }
                 ];
                 
                 morningChecks.forEach((check, checkIndex) => {
@@ -1887,53 +1970,82 @@
                                 const emp = openingShift.employees[0].employee;
                                 const textColor = getContrastColor(emp.color);
                                 html += `
-                                    <div style="background: ${emp.color}; color: ${textColor}; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center; border: 2px solid #4CAF50;">
+                                    <div class="cell-employee" style="background: ${emp.color}; color: ${textColor}; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center; border: 2px solid #4CAF50; cursor: pointer;" ondblclick="changeCheckAssignment('morning', ${day.dayOfWeek}, ${emp.id})">
                                         #${emp.employeeNumber || employees.findIndex(e => e.id === emp.id) + 1} ${emp.name}
-                                        <div style="font-size: 0.8em; margin-top: 5px; opacity: 0.9;">עושה את כל בדיקות הבוקר</div>
                                     </div>
                                 `;
                             } else {
-                                html += '<span style="color: #999;">אין עובד פתיחה</span>';
+                                html += `<button class="btn-icon" onclick="assignToCheck('morning', ${day.dayOfWeek})" style="width: 100%; padding: 10px;">+ הוסף עובד</button>`;
                             }
                         } else {
-                            // For other checks: find employees in 07:00 and 07:30 shifts
-                            // Exclude the 06:45 employee
-                            const openingShift = day.shifts.find(s => timeToMinutes(s.start) === 405);
-                            const openingEmpId = openingShift?.employees[0]?.employee?.id;
-                            
-                            const morningShifts = day.shifts.filter(s => {
-                                const minutes = timeToMinutes(s.start);
-                                return minutes === 420 || minutes === 450; // 07:00 or 07:30
-                            });
-                            
-                            // Collect all eligible employees (excluding opening employee)
-                            const eligibleEmployees = [];
-                            const usedEmployeeIds = new Set();
-                            
-                            morningShifts.forEach(shift => {
-                                shift.employees.forEach(assignment => {
-                                    const emp = assignment.employee;
-                                    if (emp.id !== openingEmpId && !usedEmployeeIds.has(emp.id)) {
-                                        const perms = emp.checkPermissions || {};
-                                        if (perms[check.key]) {
-                                            eligibleEmployees.push(emp);
-                                        }
-                                    }
+                            // Skip rooms check on Friday (everyone works from home)
+                            if (check.key === 'rooms' && day.dayOfWeek === 5) {
+                                html += '<span style="color: #999;">לא נדרש (עבודה מהבית)</span>';
+                            } 
+                            // Saturday - no work
+                            else if (day.dayOfWeek === 6) {
+                                html += '<span style="color: #ccc;">לא עובדים</span>';
+                            }
+                            else {
+                                // For other checks: find employees in 07:00 and 07:30 shifts
+                                // Exclude the 06:45 employee
+                                const openingShift = day.shifts.find(s => timeToMinutes(s.start) === 405);
+                                const openingEmp = openingShift?.employees[0]?.employee;
+                                const openingEmpId = openingEmp?.id;
+                                
+                                const morningShifts = day.shifts.filter(s => {
+                                    const minutes = timeToMinutes(s.start);
+                                    return minutes === 420 || minutes === 450; // 07:00 or 07:30
                                 });
-                            });
-                            
-                            if (eligibleEmployees.length > 0) {
-                                // Rotate through employees to distribute checks
-                                const selectedEmp = eligibleEmployees[checkIndex % eligibleEmployees.length];
-                                const textColor = getContrastColor(selectedEmp.color);
-                                html += `
-                                    <div style="background: ${selectedEmp.color}; color: ${textColor}; padding: 8px; border-radius: 5px; font-weight: bold; text-align: center;">
-                                        #${selectedEmp.employeeNumber || employees.findIndex(e => e.id === selectedEmp.id) + 1} ${selectedEmp.name}
-                                    </div>
-                                `;
-                                usedEmployeeIds.add(selectedEmp.id);
-                            } else {
-                                html += '<span style="color: #999;">אין עובד מורשה</span>';
+                                
+                                // Collect all eligible employees (excluding opening employee)
+                                let eligibleEmployees = [];
+                                const usedEmployeeIds = new Set();
+                                
+                                morningShifts.forEach(shift => {
+                                    shift.employees.forEach(assignment => {
+                                        const emp = assignment.employee;
+                                        if (emp.id !== openingEmpId && !usedEmployeeIds.has(emp.id)) {
+                                            const perms = emp.checkPermissions || {};
+                                            if (perms[check.key]) {
+                                                eligibleEmployees.push(emp);
+                                            }
+                                        }
+                                    });
+                                });
+                                
+                                // Special handling for QF: if opening employee can do QF, use them
+                                if (check.key === 'qf' && openingEmp) {
+                                    const openingPerms = openingEmp.checkPermissions || {};
+                                    if (openingPerms.qf) {
+                                        eligibleEmployees = [openingEmp];
+                                    }
+                                    // If no QF-authorized employee, use manager from morning shifts
+                                    else if (eligibleEmployees.length === 0) {
+                                        morningShifts.forEach(shift => {
+                                            shift.employees.forEach(assignment => {
+                                                const emp = assignment.employee;
+                                                if (emp.isManager && !eligibleEmployees.some(e => e.id === emp.id)) {
+                                                    eligibleEmployees.push(emp);
+                                                }
+                                            });
+                                        });
+                                    }
+                                }
+                                
+                                if (eligibleEmployees.length > 0) {
+                                    // Rotate through employees to distribute checks
+                                    const selectedEmp = eligibleEmployees[checkIndex % eligibleEmployees.length];
+                                    const textColor = getContrastColor(selectedEmp.color);
+                                    html += `
+                                        <div class="cell-employee" style="background: ${selectedEmp.color}; color: ${textColor}; padding: 8px; border-radius: 5px; font-weight: bold; text-align: center; cursor: pointer;" ondblclick="changeCheckAssignment('${check.key}', ${day.dayOfWeek}, ${selectedEmp.id})">
+                                            #${selectedEmp.employeeNumber || employees.findIndex(e => e.id === selectedEmp.id) + 1} ${selectedEmp.name}
+                                        </div>
+                                    `;
+                                    usedEmployeeIds.add(selectedEmp.id);
+                                } else {
+                                    html += `<button class="btn-icon" onclick="assignToCheck('${check.key}', ${day.dayOfWeek})" style="width: 100%; padding: 8px;">+ הוסף עובד</button>`;
+                                }
                             }
                         }
                         
