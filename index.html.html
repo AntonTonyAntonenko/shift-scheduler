@@ -1,0 +1,1943 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת שיבוץ משמרות אוטומטית</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            background: #f5f5f5;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            background: #e0e0e0;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 10px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: monospace;
+        }
+
+        input::placeholder {
+            color: #999;
+            font-family: monospace;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input:invalid {
+            border-color: #ff6b6b;
+        }
+
+        input:valid {
+            border-color: #51cf66;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #a8b3ff 0%, #c5b3ff 100%);
+            margin-right: 10px;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffa3d7 100%);
+        }
+
+        .shift-list, .employee-list {
+            margin-top: 20px;
+        }
+
+        .shift-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .employee-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .shift-info, .employee-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .employee-color-preview {
+            width: 45px;
+            height: 45px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            font-size: 18px;
+        }
+
+        .employee-details {
+            flex: 1;
+        }
+
+        .employee-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .employee-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .home-work-toggle {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 12px;
+            background: #f0f0f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .home-work-toggle:hover {
+            background: #e0e0e0;
+        }
+
+        .home-work-toggle.active {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .home-work-toggle input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .shift-name, .employee-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .shift-time {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .schedule-table {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .shift-cell {
+            background: #e7f3ff;
+            color: #0066cc;
+            font-weight: 600;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+
+        .friday-shift {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .shift-cell {
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 10px;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .shift-cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .home-icon {
+            font-size: 14px;
+            margin-left: 3px;
+        }
+
+        .employee-name-badge {
+            flex: 1;
+        }
+
+        .context-menu {
+            position: absolute;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            min-width: 200px;
+        }
+
+        .context-menu-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .context-menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .context-menu-item:hover {
+            background: #f0f0f0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .employee-select-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+
+        .employee-select-item {
+            padding: 12px;
+            margin: 5px 0;
+            background: #f9f9f9;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .employee-select-item:hover {
+            background: #e7f3ff;
+            border-color: #667eea;
+        }
+
+        .employee-select-item.unavailable {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #ffe0e0;
+        }
+
+        .constraint-item {
+            background: white;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border-right: 4px solid #dc3545;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .constraint-info {
+            flex: 1;
+        }
+
+        .constraint-text {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .add-constraint-form {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .form-row > * {
+            flex: 1;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .date-input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .unavailable-indicator {
+            background: #dc3545;
+            color: white;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-right: 5px;
+        }
+
+        .rules-info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-right: 4px solid #667eea;
+        }
+
+        .rules-info h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .rules-info ul {
+            margin-right: 20px;
+        }
+
+        .rules-info li {
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 0;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .tab {
+                padding: 15px 10px;
+                font-size: 14px;
+            }
+
+            .schedule-table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 8px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗓️ מערכת שיבוץ משמרות אוטומטית</h1>
+            <p>ניהול חכם של משמרות עובדים</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab(0)">עובדים</button>
+            <button class="tab" onclick="switchTab(1)">משמרות</button>
+            <button class="tab" onclick="switchTab(2)">אילוצים</button>
+            <button class="tab" onclick="switchTab(3)">שיבוץ אוטומטי</button>
+        </div>
+
+        <div class="tab-content active">
+            <div class="section">
+                <h2>הוספת עובד חדש</h2>
+                <div class="form-group">
+                    <label>שם העובד:</label>
+                    <input type="text" id="employeeName" placeholder="הכנס שם מלא">
+                </div>
+                <button class="btn" onclick="addEmployee()">➕ הוסף עובד</button>
+            </div>
+
+            <div class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">רשימת עובדים</h2>
+                    <div style="background: #e7f3ff; padding: 12px 20px; border-radius: 8px; border-right: 4px solid #667eea;">
+                        <span style="font-weight: 600; color: #333;">👥 סה"כ עובדים: <span id="totalEmployees">0</span></span>
+                        <span style="margin-right: 20px; font-weight: 600; color: #856404;">🦺 אחמ"שים: <span id="totalSafetyOfficers">0</span></span>
+                        <span style="margin-right: 20px; font-weight: 600; color: #666;">👤 עובדים רגילים: <span id="totalRegularEmployees">0</span></span>
+                    </div>
+                </div>
+                <div class="employee-list" id="employeeList"></div>
+            </div>
+        </div>
+
+        <div class="tab-content">
+            <div class="section">
+                <h2>הוספת משמרת חדשה</h2>
+                <div class="form-group">
+                    <label>שם המשמרת:</label>
+                    <input type="text" id="shiftName" placeholder='למשל: "בוקר", "צהריים", "ערב"'>
+                </div>
+                <div class="form-group">
+                    <label>שעת התחלה (פורמט: HH:MM, לדוגמה 07:30 או רק 0730):</label>
+                    <input type="text" id="shiftStart" placeholder="07:30 או 0730" 
+                           maxlength="5" oninput="formatTimeInput(this)">
+                </div>
+                <div class="form-group">
+                    <label>שעת סיום (פורמט: HH:MM, לדוגמה 16:00 או רק 1600):</label>
+                    <input type="text" id="shiftEnd" placeholder="16:00 או 1600" 
+                           maxlength="5" oninput="formatTimeInput(this)">
+                </div>
+                <div class="form-group">
+                    <label>כמה עובדים נדרשים למשמרת:</label>
+                    <input type="number" id="shiftRequiredEmployees" value="1" min="1" max="20">
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="shiftPreferSafetyOfficers" style="width: auto; margin: 0;">
+                        <span>🦺 אחמ"שים מעדיפים משמרת זו</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="shiftIsNightOnCall" style="width: auto; margin: 0;">
+                        <span>🌙 כונן סופ"ש (רק מי שמסומן ככונן)</span>
+                    </label>
+                </div>
+                <button class="btn" onclick="addShift()">➕ הוסף משמרת</button>
+            </div>
+
+            <div class="section">
+                <h2>רשימת משמרות</h2>
+                <div class="shift-list" id="shiftList"></div>
+            </div>
+        </div>
+
+        <div class="tab-content">
+            <div class="section">
+                <h2>הוספת אילוץ חדש</h2>
+                <div class="add-constraint-form">
+                    <div class="form-group">
+                        <label>עובד:</label>
+                        <select id="constraintEmployee">
+                            <option value="">בחר עובד</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>יום בשבוע:</label>
+                            <select id="constraintDay">
+                                <option value="">כל יום</option>
+                                <option value="0">ראשון</option>
+                                <option value="1">שני</option>
+                                <option value="2">שלישי</option>
+                                <option value="3">רביעי</option>
+                                <option value="4">חמישי</option>
+                                <option value="5">שישי</option>
+                                <option value="6">שבת</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>משמרת:</label>
+                            <select id="constraintShift">
+                                <option value="">כל משמרת</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>תאריך ספציפי (אופציונלי):</label>
+                        <input type="date" id="constraintDate">
+                    </div>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="constraintPermanent" style="width: auto; margin: 0;">
+                            <span>✓ אילוץ קבוע (העובד אישר)</span>
+                        </label>
+                    </div>
+                    <button class="btn" onclick="addConstraint()">🚫 הוסף אילוץ</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>אילוצים קיימים</h2>
+                <div id="constraintsList"></div>
+            </div>
+        </div>
+
+        <div class="tab-content">
+            <div class="section">
+                <div class="rules-info">
+                    <h3>📋 כללי השיבוץ האוטומטי:</h3>
+                    <ul>
+                        <li>✅ שיבוץ שבועי מיום ראשון עד שבת</li>
+                        <li>✅ כל עובד **חייב** לעבוד ביום שישי פעם ב-3 שבועות</li>
+                        <li>✅ אחמ"ש אחד עובד בשישי כחוק</li>
+                        <li>🦺 <strong>אחמ"שים:</strong> עובדים רק ב-07:30, 09:00, או 10:00</li>
+                        <li>🏠 <strong>משמרות 12:00 ו-15:00:</strong> רק למי שמסומן "עבודה מהבית"</li>
+                        <li>✅ שישי: 1 עובד 06:45-13:00, 2 עובדים 07:30-13:30</li>
+                        <li>✅ משמרת 07:30-16:00: 4 עובדים (אחמ"שים מעדיפים)</li>
+                        <li>✅ משמרת 10:00: 2 עובדים לפחות</li>
+                        <li>✅ כיבוד אילוצים של עובדים</li>
+                        <li>🏠 <strong>עבודה מהבית אוטומטית:</strong></li>
+                        <li style="margin-right: 20px;">• ימי שישי - כולם עובדים מהבית</li>
+                        <li style="margin-right: 20px;">• משמרות 12:00 ואילך - תמיד מהבית</li>
+                        <li style="margin-right: 20px;">• עובדים רגילים - עד 2 פעמים בשבוע</li>
+                        <li style="margin-right: 20px;">• אחמ״ש - פעם אחת בשבוע</li>
+                        <li>🌙 <strong>כונן סופ"ש:</strong> רק מי שמסומן ככונן</li>
+                        <li>💡 לחיצה ימנית על משמרת להחלפה או הסרה</li>
+                    </ul>
+                </div>
+
+                <h2>יצירת שיבוץ חדש</h2>
+                <div class="controls">
+                    <div class="form-group date-input">
+                        <label>תאריך התחלה (חייב להיות יום ראשון!):</label>
+                        <input type="date" id="startDate">
+                        <small style="color: #856404; display: block; margin-top: 5px;">⚠️ בחר רק יום ראשון</small>
+                    </div>
+                    <div class="form-group date-input">
+                        <label>מספר שבועות:</label>
+                        <input type="number" id="numWeeks" value="4" min="1" max="12">
+                    </div>
+                </div>
+                <button class="btn" onclick="generateSchedule()">🎯 צור שיבוץ אוטומטי</button>
+            </div>
+
+            <div class="section" id="scheduleSection" style="display: none;">
+                <h2>לוח השיבוץ</h2>
+                <div class="schedule-table" id="scheduleTable"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for shift swap -->
+    <div id="swapModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>החלף משמרת</h3>
+                <p id="swapInfo" style="color: #666; margin-top: 10px;"></p>
+            </div>
+            <div class="employee-select-list" id="swapEmployeeList"></div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn" onclick="closeSwapModal()">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for editing shift -->
+    <div id="editShiftModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ עריכת משמרת</h3>
+            </div>
+            <div style="margin-top: 20px;">
+                <div class="form-group">
+                    <label>שם המשמרת:</label>
+                    <input type="text" id="editShiftName" placeholder="בוקר, צהריים, ערב...">
+                </div>
+                <div class="form-group">
+                    <label>שעת התחלה (לדוגמה: 0730 או 07:30):</label>
+                    <input type="text" id="editShiftStart" placeholder="07:30" maxlength="5" oninput="formatTimeInput(this)">
+                </div>
+                <div class="form-group">
+                    <label>שעת סיום (לדוגמה: 1600 או 16:00):</label>
+                    <input type="text" id="editShiftEnd" placeholder="16:00" maxlength="5" oninput="formatTimeInput(this)">
+                </div>
+                <div class="form-group">
+                    <label>כמה עובדים נדרשים למשמרת:</label>
+                    <input type="number" id="editShiftRequiredEmployees" value="1" min="1" max="20">
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="editShiftPreferSafetyOfficers" style="width: auto; margin: 0;">
+                        <span>🦺 אחמ"שים מעדיפים משמרת זו</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="editShiftIsNightOnCall" style="width: auto; margin: 0;">
+                        <span>🌙 כונן סופ"ש (רק מי שמסומן ככונן)</span>
+                    </label>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn" onclick="saveShiftEdit()">💾 שמור</button>
+                <button class="btn btn-secondary" onclick="closeEditShiftModal()">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context menu for right-click -->
+    <div id="contextMenu" class="context-menu" style="display: none;">
+        <div class="context-menu-item" onclick="openSwapModal()">
+            🔄 החלף משמרת
+        </div>
+        <div class="context-menu-item" onclick="removeFromShift()">
+            ❌ הסר עובד ממשמרת
+        </div>
+    </div>
+
+    <script>
+        let employees = [];
+        let shifts = [];
+        let schedule = [];
+        let constraints = [];
+        let selectedShift = null;
+
+        // Color palette for employees - bright, distinguishable colors
+        const colorPalette = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+            '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788',
+            '#FF8FAB', '#6C5CE7', '#00B894', '#FDCB6E', '#E17055',
+            '#74B9FF', '#A29BFE', '#55EFC4', '#FD79A8', '#636E72',
+            '#FF7675', '#00CEC9', '#81ECEC', '#FAB1A0', '#DFE6E9'
+        ];
+
+        // Function to get contrasting text color
+        function getContrastColor(hexColor) {
+            const r = parseInt(hexColor.substr(1,2), 16);
+            const g = parseInt(hexColor.substr(3,2), 16);
+            const b = parseInt(hexColor.substr(5,2), 16);
+            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+            return brightness > 155 ? '#000000' : '#FFFFFF';
+        }
+
+        // Function to assign color to employee
+        function assignEmployeeColor(employee, index) {
+            if (!employee.color) {
+                employee.color = colorPalette[index % colorPalette.length];
+            }
+            return employee.color;
+        }
+
+        // Check if employee can work this shift based on role and work-from-home status
+        function canWorkShift(employee, shift) {
+            const shiftStart = shift.start;
+            
+            // Safety officers can ONLY work 07:30, 09:00, or 10:00
+            if (employee.isSafetyOfficer) {
+                const allowedTimes = ['07:30', '09:00', '10:00'];
+                return allowedTimes.includes(shiftStart);
+            }
+            
+            // 12:00 and 15:00 shifts - ONLY for employees marked as work from home
+            if (shiftStart === '12:00' || shiftStart === '15:00') {
+                return employee.workFromHome === true;
+            }
+            
+            // All other shifts - anyone can work
+            return true;
+        }
+
+        // Check if shift is evening/night (12:00-20:00 or 15:00-23:30)
+        function isEveningShift(shiftStart) {
+            const hour = parseInt(shiftStart.split(':')[0]);
+            const minute = parseInt(shiftStart.split(':')[1] || 0);
+            const timeInMinutes = hour * 60 + minute;
+            
+            // 12:00 = 720 minutes, 15:00 = 900 minutes
+            return timeInMinutes >= 720; // Any shift starting at 12:00 or later
+        }
+
+        // Check if employee should work from home for this shift
+        function shouldWorkFromHome(employee, shift, isFriday, weeklyHomeWorkCount) {
+            // Friday - everyone works from home
+            if (isFriday) return true;
+            
+            // Safety officer - works from home once a week
+            if (employee.isSafetyOfficer) {
+                return weeklyHomeWorkCount < 1;
+            }
+            
+            // Evening/night shifts - always from home
+            if (isEveningShift(shift.start)) return true;
+            
+            // Regular employees - up to 2 times a week if marked as work from home
+            if (employee.workFromHome) {
+                return weeklyHomeWorkCount < 2;
+            }
+            
+            return false;
+        }
+
+        // Load data from localStorage
+        function loadData() {
+            const savedEmployees = localStorage.getItem('employees');
+            const savedShifts = localStorage.getItem('shifts');
+            const savedConstraints = localStorage.getItem('constraints');
+            
+            if (savedEmployees) employees = JSON.parse(savedEmployees);
+            if (savedShifts) shifts = JSON.parse(savedShifts);
+            if (savedConstraints) constraints = JSON.parse(savedConstraints);
+            
+            // Sort shifts by time after loading
+            if (shifts.length > 0) {
+                sortShiftsByTime();
+                // Ensure shifts have new fields
+                shifts.forEach(shift => {
+                    if (shift.requiredEmployees === undefined) shift.requiredEmployees = 1;
+                    if (shift.preferSafetyOfficers === undefined) shift.preferSafetyOfficers = false;
+                    if (shift.isNightOnCall === undefined) shift.isNightOnCall = false;
+                });
+            }
+            
+            // Ensure all employees have colors
+            employees.forEach((emp, index) => {
+                if (!emp.color) {
+                    emp.color = colorPalette[index % colorPalette.length];
+                }
+                if (emp.workFromHome === undefined) {
+                    emp.workFromHome = false;
+                }
+                if (emp.isSafetyOfficer === undefined) {
+                    emp.isSafetyOfficer = false;
+                }
+                if (emp.onCallDuty === undefined) {
+                    emp.onCallDuty = false;
+                }
+                if (emp.willingForMoreFridays === undefined) {
+                    emp.willingForMoreFridays = false;
+                }
+                if (emp.weeklyHomeWorkCount === undefined) {
+                    emp.weeklyHomeWorkCount = 0;
+                }
+            });
+            
+            updateEmployeeList();
+            updateShiftList();
+            updateConstraintsList();
+            updateConstraintSelects();
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            localStorage.setItem('employees', JSON.stringify(employees));
+            localStorage.setItem('shifts', JSON.stringify(shifts));
+            localStorage.setItem('constraints', JSON.stringify(constraints));
+        }
+
+        function switchTab(index) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            tabs[index].classList.add('active');
+            contents[index].classList.add('active');
+        }
+
+        function formatTimeInput(input) {
+            let value = input.value.replace(/[^0-9]/g, ''); // Remove non-digits
+            
+            if (value.length >= 2) {
+                // Add colon after first 2 digits
+                value = value.substring(0, 2) + ':' + value.substring(2, 4);
+            }
+            
+            input.value = value;
+        }
+
+        function addEmployee() {
+            const name = document.getElementById('employeeName').value.trim();
+            if (!name) {
+                alert('אנא הכנס שם עובד');
+                return;
+            }
+            
+            const newEmployee = {
+                id: Date.now(),
+                name: name,
+                fridayCount: 0,
+                lastFriday: null,
+                color: colorPalette[employees.length % colorPalette.length],
+                workFromHome: false,
+                isSafetyOfficer: false,
+                onCallDuty: false,
+                willingForMoreFridays: false,
+                weeklyHomeWorkCount: 0
+            };
+            
+            employees.push(newEmployee);
+            
+            document.getElementById('employeeName').value = '';
+            updateEmployeeList();
+            saveData();
+        }
+
+        function removeEmployee(id) {
+            if (confirm('האם אתה בטוח שברצונך למחוק עובד זה?')) {
+                employees = employees.filter(e => e.id !== id);
+                updateEmployeeList();
+                saveData();
+            }
+        }
+
+        function toggleWorkFromHome(employeeId) {
+            const employee = employees.find(e => e.id === employeeId);
+            if (employee) {
+                employee.workFromHome = !employee.workFromHome;
+                updateEmployeeList();
+                saveData();
+                
+                // Update schedule if exists
+                if (schedule.length > 0) {
+                    displaySchedule();
+                }
+            }
+        }
+
+        function toggleSafetyOfficer(employeeId) {
+            const employee = employees.find(e => e.id === employeeId);
+            if (employee) {
+                employee.isSafetyOfficer = !employee.isSafetyOfficer;
+                updateEmployeeList();
+                saveData();
+                
+                // Update schedule if exists
+                if (schedule.length > 0) {
+                    displaySchedule();
+                }
+            }
+        }
+
+        function toggleOnCallDuty(employeeId) {
+            const employee = employees.find(e => e.id === employeeId);
+            if (employee) {
+                employee.onCallDuty = !employee.onCallDuty;
+                updateEmployeeList();
+                saveData();
+                
+                // Update schedule if exists
+                if (schedule.length > 0) {
+                    displaySchedule();
+                }
+            }
+        }
+
+        function toggleWillingForMoreFridays(employeeId) {
+            const employee = employees.find(e => e.id === employeeId);
+            if (employee) {
+                employee.willingForMoreFridays = !employee.willingForMoreFridays;
+                updateEmployeeList();
+                saveData();
+            }
+        }
+
+        function editEmployeeName(employeeId) {
+            const employee = employees.find(e => e.id === employeeId);
+            if (!employee) return;
+            
+            const newName = prompt('הכנס שם חדש לעובד:', employee.name);
+            if (newName && newName.trim() && newName.trim() !== employee.name) {
+                const oldName = employee.name;
+                employee.name = newName.trim();
+                
+                // Update name in existing schedule
+                schedule.forEach(shift => {
+                    if (shift.employee === oldName) {
+                        shift.employee = newName.trim();
+                    }
+                });
+                
+                updateEmployeeList();
+                saveData();
+                
+                // Refresh schedule display if exists
+                if (schedule.length > 0) {
+                    displaySchedule();
+                }
+                
+                alert('שם העובד עודכן בהצלחה!');
+            }
+        }
+
+        function updateEmployeeList() {
+            const list = document.getElementById('employeeList');
+            
+            // Update statistics
+            const totalEmployees = employees.length;
+            const safetyOfficers = employees.filter(e => e.isSafetyOfficer).length;
+            const regularEmployees = totalEmployees - safetyOfficers;
+            
+            document.getElementById('totalEmployees').textContent = totalEmployees;
+            document.getElementById('totalSafetyOfficers').textContent = safetyOfficers;
+            document.getElementById('totalRegularEmployees').textContent = regularEmployees;
+            
+            if (employees.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #999;">אין עובדים במערכת. הוסף עובד חדש להתחלה.</p>';
+                return;
+            }
+            
+            // Sort employees: safety officers first, then by name
+            const sortedEmployees = [...employees].sort((a, b) => {
+                if (a.isSafetyOfficer && !b.isSafetyOfficer) return -1;
+                if (!a.isSafetyOfficer && b.isSafetyOfficer) return 1;
+                return a.name.localeCompare(b.name, 'he');
+            });
+            
+            let html = '';
+            let lastWasSafetyOfficer = true;
+            
+            sortedEmployees.forEach((emp) => {
+                // Add separator between safety officers and regular employees
+                if (lastWasSafetyOfficer && !emp.isSafetyOfficer && safetyOfficers > 0) {
+                    html += `
+                        <div style="border-top: 2px solid #ddd; margin: 20px 0; padding-top: 10px;">
+                            <p style="text-align: center; color: #999; font-size: 14px; font-weight: 600;">
+                                ▼ עובדים רגילים ▼
+                            </p>
+                        </div>
+                    `;
+                    lastWasSafetyOfficer = false;
+                }
+                
+                const index = employees.findIndex(e => e.id === emp.id);
+                const color = assignEmployeeColor(emp, index);
+                const initials = emp.name.split(' ').map(n => n[0]).join('').substr(0, 2).toUpperCase();
+                const textColor = getContrastColor(color);
+                
+                html += `
+                    <div class="employee-item">
+                        <div class="employee-info">
+                            <div class="employee-color-preview" style="background-color: ${color}; color: ${textColor};">
+                                ${initials}
+                            </div>
+                            <div class="employee-details">
+                                <div class="employee-name">
+                                    ${emp.name}
+                                    ${emp.workFromHome ? '<span style="font-size: 18px;">🏠</span>' : ''}
+                                    ${emp.isSafetyOfficer ? '<span style="font-size: 18px;" title="אחמ״ש">🦺</span>' : ''}
+                                    ${emp.onCallDuty ? '<span style="font-size: 18px;" title="כונן סופ״ש">🌙</span>' : ''}
+                                </div>
+                                <div class="shift-time">משמרות שישי: ${emp.fridayCount || 0}</div>
+                            </div>
+                        </div>
+                        <div class="employee-actions">
+                            <label class="home-work-toggle ${emp.isSafetyOfficer ? 'active' : ''}" 
+                                   title="אחראי בטיחות ומשמרת" 
+                                   style="${emp.isSafetyOfficer ? 'background: #fff3cd; color: #856404; border: 1px solid #ffc107;' : ''}">
+                                <input type="checkbox" ${emp.isSafetyOfficer ? 'checked' : ''} 
+                                       onchange="toggleSafetyOfficer(${emp.id})">
+                                🦺 אחמ״ש
+                            </label>
+                            <label class="home-work-toggle ${emp.workFromHome ? 'active' : ''}" title="עבודה מהבית (עד 2 פעמים בשבוע)">
+                                <input type="checkbox" ${emp.workFromHome ? 'checked' : ''} 
+                                       onchange="toggleWorkFromHome(${emp.id})">
+                                🏠 עבודה מהבית
+                            </label>
+                            <label class="home-work-toggle ${emp.willingForMoreFridays ? 'active' : ''}" 
+                                   title="מוכן לעבוד שישי יותר מפעם ב-3 שבועות" 
+                                   style="${emp.willingForMoreFridays ? 'background: #fff3cd; color: #856404; border: 1px solid #ffc107;' : ''}">
+                                <input type="checkbox" ${emp.willingForMoreFridays ? 'checked' : ''} 
+                                       onchange="toggleWillingForMoreFridays(${emp.id})">
+                                📅 מוכן לשישי נוסף
+                            </label>
+                            <label class="home-work-toggle ${emp.onCallDuty ? 'active' : ''}" 
+                                   title="כונן סופ״ש (שישי ושבת)" 
+                                   style="${emp.onCallDuty ? 'background: #e7f3ff; color: #0066cc; border: 1px solid #0066cc;' : ''}">
+                                <input type="checkbox" ${emp.onCallDuty ? 'checked' : ''} 
+                                       onchange="toggleOnCallDuty(${emp.id})">
+                                🌙 כונן סופ"ש
+                            </label>
+                            <button class="btn btn-secondary" onclick="editEmployeeName(${emp.id})" 
+                                    style="padding: 8px 16px;" title="ערוך שם">✏️</button>
+                            <button class="btn btn-danger" onclick="removeEmployee(${emp.id})" 
+                                    style="padding: 8px 16px;" title="מחק עובד">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            list.innerHTML = html;
+        }
+
+        function addShift() {
+            const name = document.getElementById('shiftName').value.trim();
+            const start = document.getElementById('shiftStart').value.trim();
+            const end = document.getElementById('shiftEnd').value.trim();
+            const requiredEmployees = parseInt(document.getElementById('shiftRequiredEmployees').value) || 1;
+            const preferSafetyOfficers = document.getElementById('shiftPreferSafetyOfficers').checked;
+            const isNightOnCall = document.getElementById('shiftIsNightOnCall').checked;
+            
+            if (!name || !start || !end) {
+                alert('אנא מלא את כל השדות');
+                return;
+            }
+            
+            // Validate time format (HH:MM)
+            const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+            if (!timePattern.test(start)) {
+                alert('שעת התחלה לא תקינה. השתמש בפורמט HH:MM (לדוגמה: 07:30)');
+                return;
+            }
+            if (!timePattern.test(end)) {
+                alert('שעת הסיום לא תקינה. השתמש בפורמט HH:MM (לדוגמה: 16:00)');
+                return;
+            }
+            
+            // Normalize time format (add leading zero if needed)
+            const normalizeTime = (time) => {
+                const [hours, minutes] = time.split(':');
+                return `${hours.padStart(2, '0')}:${minutes}`;
+            };
+            
+            shifts.push({
+                id: Date.now(),
+                name: name,
+                start: normalizeTime(start),
+                end: normalizeTime(end),
+                requiredEmployees: requiredEmployees,
+                preferSafetyOfficers: preferSafetyOfficers,
+                isNightOnCall: isNightOnCall
+            });
+            
+            sortShiftsByTime(); // Sort after adding
+            
+            document.getElementById('shiftName').value = '';
+            document.getElementById('shiftStart').value = '';
+            document.getElementById('shiftEnd').value = '';
+            document.getElementById('shiftRequiredEmployees').value = '1';
+            document.getElementById('shiftPreferSafetyOfficers').checked = false;
+            document.getElementById('shiftIsNightOnCall').checked = false;
+            updateShiftList();
+            updateConstraintSelects();
+            saveData();
+        }
+
+        let currentEditingShiftId = null;
+
+        function editShift(shiftId) {
+            // Convert to number if needed
+            const id = typeof shiftId === 'string' ? parseInt(shiftId) : shiftId;
+            const shift = shifts.find(s => s.id === id);
+            
+            if (!shift) {
+                alert('משמרת לא נמצאה');
+                console.log('Looking for shift ID:', id);
+                console.log('Available shifts:', shifts);
+                return;
+            }
+            
+            currentEditingShiftId = id;
+            
+            // Populate modal fields
+            document.getElementById('editShiftName').value = shift.name;
+            document.getElementById('editShiftStart').value = shift.start;
+            document.getElementById('editShiftEnd').value = shift.end;
+            document.getElementById('editShiftRequiredEmployees').value = shift.requiredEmployees || 1;
+            document.getElementById('editShiftPreferSafetyOfficers').checked = shift.preferSafetyOfficers || false;
+            document.getElementById('editShiftIsNightOnCall').checked = shift.isNightOnCall || false;
+            
+            // Show modal
+            document.getElementById('editShiftModal').classList.add('active');
+        }
+
+        function closeEditShiftModal() {
+            document.getElementById('editShiftModal').classList.remove('active');
+            currentEditingShiftId = null;
+        }
+
+        function saveShiftEdit() {
+            if (!currentEditingShiftId) return;
+            
+            const shift = shifts.find(s => s.id === currentEditingShiftId);
+            if (!shift) {
+                alert('משמרת לא נמצאה');
+                closeEditShiftModal();
+                return;
+            }
+            
+            const newName = document.getElementById('editShiftName').value.trim();
+            const newStart = document.getElementById('editShiftStart').value.trim();
+            const newEnd = document.getElementById('editShiftEnd').value.trim();
+            const newRequiredEmployees = parseInt(document.getElementById('editShiftRequiredEmployees').value) || 1;
+            const newPreferSafetyOfficers = document.getElementById('editShiftPreferSafetyOfficers').checked;
+            const newIsNightOnCall = document.getElementById('editShiftIsNightOnCall').checked;
+            
+            if (!newName || !newStart || !newEnd) {
+                alert('אנא מלא את כל השדות');
+                return;
+            }
+            
+            // Validate time format
+            const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+            if (!timePattern.test(newStart)) {
+                alert('שעת התחלה לא תקינה. השתמש בפורמט HH:MM');
+                return;
+            }
+            if (!timePattern.test(newEnd)) {
+                alert('שעת הסיום לא תקינה. השתמש בפורמט HH:MM');
+                return;
+            }
+            
+            // Normalize time format
+            const normalizeTime = (time) => {
+                const [hours, minutes] = time.split(':');
+                return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+            };
+            
+            const oldName = shift.name;
+            shift.name = newName;
+            shift.start = normalizeTime(newStart);
+            shift.end = normalizeTime(newEnd);
+            shift.requiredEmployees = newRequiredEmployees;
+            shift.preferSafetyOfficers = newPreferSafetyOfficers;
+            shift.isNightOnCall = newIsNightOnCall;
+            
+            sortShiftsByTime();
+            
+            // Update shift in existing schedule
+            schedule.forEach(s => {
+                if (s.shift === oldName) {
+                    s.shift = shift.name;
+                    s.shiftTime = `${shift.start}-${shift.end}`;
+                }
+            });
+            
+            updateShiftList();
+            updateConstraintSelects();
+            saveData();
+            
+            // Refresh schedule display if exists
+            if (schedule.length > 0) {
+                displaySchedule();
+            }
+            
+            closeEditShiftModal();
+            alert('המשמרת עודכנה בהצלחה!');
+        }
+
+        function removeShift(shiftId) {
+            const id = typeof shiftId === 'string' ? parseInt(shiftId) : shiftId;
+            const shift = shifts.find(s => s.id === id);
+            
+            if (!shift) {
+                alert('משמרת לא נמצאה');
+                return;
+            }
+            
+            if (confirm(`האם אתה בטוח שברצונך למחוק את המשמרת "${shift.name}" (${shift.start}-${shift.end})?`)) {
+                shifts = shifts.filter(s => s.id !== id);
+                updateShiftList();
+                updateConstraintSelects();
+                saveData();
+            }
+        }
+
+        function sortShiftsByTime() {
+            shifts.sort((a, b) => {
+                // Convert time strings to minutes for comparison
+                const timeToMinutes = (time) => {
+                    const [hours, minutes] = time.split(':').map(Number);
+                    return hours * 60 + minutes;
+                };
+                return timeToMinutes(a.start) - timeToMinutes(b.start);
+            });
+        }
+
+        function updateShiftList() {
+            const list = document.getElementById('shiftList');
+            if (shifts.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #999;">אין משמרות מוגדרות. הוסף משמרת חדשה להתחלה.</p>';
+                return;
+            }
+            
+            // Sort shifts by start time before displaying
+            sortShiftsByTime();
+            
+            list.innerHTML = shifts.map(shift => `
+                <div class="shift-item">
+                    <div class="shift-info">
+                        <div class="shift-name">
+                            ${shift.name}
+                            ${shift.preferSafetyOfficers ? ' 🦺' : ''}
+                            ${shift.isNightOnCall ? ' 🌙' : ''}
+                        </div>
+                        <div class="shift-time">
+                            ${shift.start} - ${shift.end} 
+                            <span style="background: #667eea; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px;">
+                                ${shift.requiredEmployees || 1} עובדים
+                            </span>
+                            ${shift.isNightOnCall ? '<span style="background: #0066cc; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-right: 4px;">כונן</span>' : ''}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" onclick="editShift('${shift.id}')" 
+                                style="padding: 8px 16px;" title="ערוך משמרת">✏️</button>
+                        <button class="btn btn-danger" onclick="removeShift('${shift.id}')" 
+                                style="padding: 8px 16px;" title="מחק משמרת">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateConstraintSelects() {
+            const employeeSelect = document.getElementById('constraintEmployee');
+            const shiftSelect = document.getElementById('constraintShift');
+            
+            employeeSelect.innerHTML = '<option value="">בחר עובד</option>' + 
+                employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+            
+            shiftSelect.innerHTML = '<option value="">כל משמרת</option>' + 
+                shifts.map(s => `<option value="${s.id}">${s.name} (${s.start}-${s.end})</option>`).join('');
+        }
+
+        function addConstraint() {
+            const employeeId = parseInt(document.getElementById('constraintEmployee').value);
+            const dayOfWeek = document.getElementById('constraintDay').value;
+            const shiftId = document.getElementById('constraintShift').value;
+            const specificDate = document.getElementById('constraintDate').value;
+            const isPermanent = document.getElementById('constraintPermanent').checked;
+            
+            if (!employeeId) {
+                alert('אנא בחר עובד');
+                return;
+            }
+            
+            if (!dayOfWeek && !specificDate) {
+                alert('אנא בחר יום בשבוע או תאריך ספציפי');
+                return;
+            }
+            
+            const employee = employees.find(e => e.id === employeeId);
+            const shift = shiftId ? shifts.find(s => s.id === parseInt(shiftId)) : null;
+            
+            constraints.push({
+                id: Date.now(),
+                employeeId: employeeId,
+                employeeName: employee.name,
+                dayOfWeek: dayOfWeek,
+                shiftId: shiftId ? parseInt(shiftId) : null,
+                shiftName: shift ? shift.name : 'כל משמרת',
+                specificDate: specificDate,
+                isPermanent: isPermanent
+            });
+            
+            document.getElementById('constraintDay').value = '';
+            document.getElementById('constraintShift').value = '';
+            document.getElementById('constraintDate').value = '';
+            document.getElementById('constraintPermanent').checked = false;
+            
+            updateConstraintsList();
+            saveData();
+            alert('אילוץ נוסף בהצלחה!');
+        }
+
+        function removeConstraint(id) {
+            if (confirm('האם אתה בטוח שברצונך למחוק אילוץ זה?')) {
+                constraints = constraints.filter(c => c.id !== id);
+                updateConstraintsList();
+                saveData();
+            }
+        }
+
+        function updateConstraintsList() {
+            const list = document.getElementById('constraintsList');
+            
+            if (constraints.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #999;">אין אילוצים מוגדרים</p>';
+                return;
+            }
+            
+            const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+            
+            list.innerHTML = constraints.map(c => {
+                let constraintText = `${c.employeeName} לא יכול`;
+                
+                if (c.specificDate) {
+                    const date = new Date(c.specificDate + 'T00:00:00');
+                    constraintText += ` בתאריך ${formatHebrewDate(date)}`;
+                } else if (c.dayOfWeek !== '') {
+                    constraintText += ` בימי ${dayNames[c.dayOfWeek]}`;
+                }
+                
+                if (c.shiftId) {
+                    constraintText += ` במשמרת ${c.shiftName}`;
+                } else {
+                    constraintText += ' בכל משמרת';
+                }
+                
+                const permanentBadge = c.isPermanent ? '<span style="background: #28a745; color: white; padding: 3px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px;">✓ קבוע</span>' : '';
+                
+                return `
+                    <div class="constraint-item" style="${c.isPermanent ? 'border-right-color: #28a745;' : ''}">
+                        <div class="constraint-info">
+                            <div class="constraint-text">🚫 ${constraintText} ${permanentBadge}</div>
+                        </div>
+                        <button class="btn btn-danger" onclick="removeConstraint(${c.id})">🗑️</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function checkConstraint(employeeId, date, shiftId) {
+            const checkDate = new Date(date);
+            const dayOfWeek = checkDate.getDay();
+            const dateStr = checkDate.toISOString().split('T')[0];
+            
+            return constraints.some(c => {
+                if (c.employeeId !== employeeId) return false;
+                
+                // Check specific date
+                if (c.specificDate && c.specificDate === dateStr) {
+                    if (!c.shiftId || c.shiftId === shiftId) {
+                        return true;
+                    }
+                }
+                
+                // Check day of week
+                if (c.dayOfWeek !== '' && parseInt(c.dayOfWeek) === dayOfWeek) {
+                    if (!c.shiftId || c.shiftId === shiftId) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            });
+        }
+
+        // Context menu and swap functionality
+        let contextMenuTarget = null;
+
+        document.addEventListener('click', () => {
+            document.getElementById('contextMenu').style.display = 'none';
+        });
+
+        function showContextMenu(e, scheduleItem) {
+            e.preventDefault();
+            const menu = document.getElementById('contextMenu');
+            menu.style.display = 'block';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+            contextMenuTarget = scheduleItem;
+            selectedShift = scheduleItem;
+        }
+
+        function openSwapModal() {
+            if (!selectedShift) return;
+            
+            const modal = document.getElementById('swapModal');
+            const info = document.getElementById('swapInfo');
+            const list = document.getElementById('swapEmployeeList');
+            
+            info.innerHTML = `משמרת: ${selectedShift.shift} (${selectedShift.shiftTime})<br>
+                             תאריך: ${selectedShift.date} (${selectedShift.day})<br>
+                             עובד נוכחי: ${selectedShift.employee}`;
+            
+            const currentDate = parseHebrewDate(selectedShift.date);
+            const shiftObj = shifts.find(s => s.name === selectedShift.shift);
+            
+            list.innerHTML = employees.map((emp, index) => {
+                const isCurrentEmployee = emp.name === selectedShift.employee;
+                const hasConstraint = checkConstraint(emp.id, currentDate, shiftObj?.id);
+                const isUnavailable = isCurrentEmployee || hasConstraint;
+                const color = assignEmployeeColor(emp, index);
+                const textColor = getContrastColor(color);
+                
+                return `
+                    <div class="employee-select-item ${isUnavailable ? 'unavailable' : ''}" 
+                         onclick="${isUnavailable ? '' : `swapEmployee(${emp.id})`}"
+                         style="border-right: 5px solid ${color};">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 30px; height: 30px; border-radius: 5px; background-color: ${color}; 
+                                        color: ${textColor}; display: flex; align-items: center; justify-content: center;
+                                        font-weight: bold; font-size: 12px;">
+                                ${emp.name.split(' ').map(n => n[0]).join('').substr(0, 2).toUpperCase()}
+                            </div>
+                            <div style="flex: 1;">
+                                ${hasConstraint ? '<span class="unavailable-indicator">לא זמין</span>' : ''}
+                                ${emp.name}
+                                ${emp.workFromHome ? ' 🏠' : ''}
+                                ${isCurrentEmployee ? ' (עובד נוכחי)' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            modal.classList.add('active');
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+
+        function closeSwapModal() {
+            document.getElementById('swapModal').classList.remove('active');
+        }
+
+        function swapEmployee(newEmployeeId) {
+            const newEmployee = employees.find(e => e.id === newEmployeeId);
+            if (!newEmployee) return;
+            
+            const scheduleIndex = schedule.findIndex(s => 
+                s.date === selectedShift.date && 
+                s.shift === selectedShift.shift &&
+                s.employee === selectedShift.employee
+            );
+            
+            if (scheduleIndex !== -1) {
+                schedule[scheduleIndex].employee = newEmployee.name;
+                displaySchedule();
+                closeSwapModal();
+                alert(`משמרת הוחלפה בהצלחה ל${newEmployee.name}`);
+            }
+        }
+
+        function removeFromShift() {
+            if (!selectedShift) return;
+            
+            if (confirm('האם אתה בטוח שברצונך להסיר את העובד ממשמרת זו?')) {
+                const scheduleIndex = schedule.findIndex(s => 
+                    s.date === selectedShift.date && 
+                    s.shift === selectedShift.shift &&
+                    s.employee === selectedShift.employee
+                );
+                
+                if (scheduleIndex !== -1) {
+                    schedule[scheduleIndex].employee = '---';
+                    displaySchedule();
+                    document.getElementById('contextMenu').style.display = 'none';
+                    alert('עובד הוסר מהמשמרת');
+                }
+            }
+        }
+
+        function parseHebrewDate(hebrewDateStr) {
+            // Parse Hebrew date format (DD.MM.YYYY) to Date object
+            const parts = hebrewDateStr.split('.');
+            if (parts.length === 3) {
+                return new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+            return new Date();
+        }
+
+        function generateSchedule() {
+            if (employees.length === 0) {
+                alert('אנא הוסף לפחות עובד אחד');
+                return;
+            }
+            
+            if (shifts.length === 0) {
+                alert('אנא הוסף לפחות משמרת אחת');
+                return;
+            }
+            
+            const startDate = document.getElementById('startDate').value;
+            const numWeeks = parseInt(document.getElementById('numWeeks').value);
+            
+            if (!startDate) {
+                alert('אנא בחר תאריך התחלה');
+                return;
+            }
+            
+            // Validate that start date is a Sunday
+            const start = new Date(startDate);
+            if (start.getDay() !== 0) {
+                alert('תאריך ההתחלה חייב להיות יום ראשון!');
+                return;
+            }
+            
+            schedule = [];
+            const start = new Date(startDate);
+            const employeeSchedule = employees.map(e => ({
+                ...e,
+                shiftsCount: 0,
+                weeksSinceFriday: 3, // Initialize to 3 so everyone can work first Friday
+                weeklyHomeWorkCount: 0
+            }));
+            
+            // Generate schedule for each day
+            for (let week = 0; week < numWeeks; week++) {
+                // Reset weekly home work count at start of each week
+                employeeSchedule.forEach(e => e.weeklyHomeWorkCount = 0);
+                
+                for (let day = 0; day < 7; day++) {
+                    const currentDate = new Date(start);
+                    currentDate.setDate(start.getDate() + (week * 7) + day);
+                    
+                    const isFriday = currentDate.getDay() === 5;
+                    const dayName = getDayName(currentDate.getDay());
+                    const dateStr = formatHebrewDate(currentDate);
+                    
+                    // Assign shifts for this day
+                    shifts.forEach(shift => {
+                        const requiredEmployees = shift.requiredEmployees || 1;
+                        const preferSafetyOfficers = shift.preferSafetyOfficers || false;
+                        const isNightOnCall = shift.isNightOnCall || false;
+                        
+                        // Skip shifts after 13:30 on Friday (except night on-call)
+                        if (isFriday && !isNightOnCall) {
+                            const shiftStartMinutes = parseInt(shift.start.split(':')[0]) * 60 + parseInt(shift.start.split(':')[1]);
+                            const fridayEndMinutes = 13 * 60 + 30; // 13:30
+                            if (shiftStartMinutes >= fridayEndMinutes) {
+                                return; // Skip this shift on Friday
+                            }
+                        }
+                        
+                        // For night on-call shifts, only select employees who opted in
+                        let availableEmployees;
+                        if (isNightOnCall) {
+                            availableEmployees = employeeSchedule.filter(e => 
+                                e.onCallDuty && !checkConstraint(e.id, currentDate, shift.id)
+                            );
+                            if (availableEmployees.length === 0) {
+                                // No on-call employees available - skip this shift
+                                return;
+                            }
+                        } else {
+                            // Filter out employees who have constraints for this day/shift
+                            // Also filter by role-based shift restrictions
+                            availableEmployees = employeeSchedule.filter(e => 
+                                !checkConstraint(e.id, currentDate, shift.id) && canWorkShift(e, shift)
+                            );
+                            
+                            if (availableEmployees.length === 0) {
+                                // No one can work this shift based on rules - skip it
+                                console.warn(`No available employees for shift ${shift.name} at ${shift.start} on ${dateStr}`);
+                                return;
+                            }
+                        }
+                        
+                        // If this shift prefers safety officers, prioritize them
+                        let selectedEmployees = [];
+                        if (preferSafetyOfficers) {
+                            const safetyOfficersAvailable = availableEmployees
+                                .filter(e => e.isSafetyOfficer)
+                                .sort((a, b) => a.shiftsCount - b.shiftsCount);
+                            
+                            const regularEmployeesAvailable = availableEmployees
+                                .filter(e => !e.isSafetyOfficer)
+                                .sort((a, b) => a.shiftsCount - b.shiftsCount);
+                            
+                            // First assign safety officers, then regular employees if needed
+                            selectedEmployees = [
+                                ...safetyOfficersAvailable.slice(0, requiredEmployees),
+                                ...regularEmployeesAvailable.slice(0, Math.max(0, requiredEmployees - safetyOfficersAvailable.length))
+                            ].slice(0, requiredEmployees);
+                        } else {
+                            // Normal assignment - sort by shift count
+                            selectedEmployees = availableEmployees
+                                .sort((a, b) => a.shiftsCount - b.shiftsCount)
+                                .slice(0, requiredEmployees);
+                        }
+                        
+                        // If Friday (and not weekend on-call), apply Friday logic
+                        if (isFriday && !isNightOnCall) {
+                            // For Friday shifts, we need to ensure:
+                            // 1. At least one safety officer (required by law)
+                            // 2. All employees rotate through Friday (once every 3 weeks minimum)
+                            // 3. Employees willing to work more Fridays can fill extra slots
+                            
+                            // Get employees who MUST work Friday (3+ weeks since last Friday)
+                            const mustWorkFriday = availableEmployees
+                                .filter(e => e.weeksSinceFriday >= 3)
+                                .sort((a, b) => {
+                                    // Prioritize safety officers if needed
+                                    if (a.isSafetyOfficer && !b.isSafetyOfficer) return -1;
+                                    if (!a.isSafetyOfficer && b.isSafetyOfficer) return 1;
+                                    return b.weeksSinceFriday - a.weeksSinceFriday; // Most overdue first
+                                });
+                            
+                            // Get employees willing to work more Fridays (even if < 3 weeks)
+                            const willingForMore = availableEmployees
+                                .filter(e => e.willingForMoreFridays && e.weeksSinceFriday < 3)
+                                .sort((a, b) => a.shiftsCount - b.shiftsCount);
+                            
+                            // Get safety officers available
+                            const safetyOfficersAvailable = availableEmployees
+                                .filter(e => e.isSafetyOfficer)
+                                .sort((a, b) => a.shiftsCount - b.shiftsCount);
+                            
+                            selectedEmployees = [];
+                            
+                            // First, ensure at least one safety officer
+                            if (safetyOfficersAvailable.length > 0) {
+                                const safetyOfficer = safetyOfficersAvailable[0];
+                                selectedEmployees.push(safetyOfficer);
+                            }
+                            
+                            // Then add employees who MUST work (3+ weeks)
+                            const remainingMust = mustWorkFriday.filter(e => !selectedEmployees.includes(e));
+                            selectedEmployees = [...selectedEmployees, ...remainingMust];
+                            
+                            // If we have more slots, fill with willing employees
+                            if (selectedEmployees.length < requiredEmployees) {
+                                const remainingSlots = requiredEmployees - selectedEmployees.length;
+                                const willingToAdd = willingForMore
+                                    .filter(e => !selectedEmployees.includes(e))
+                                    .slice(0, remainingSlots);
+                                selectedEmployees = [...selectedEmployees, ...willingToAdd];
+                            }
+                            
+                            // If still not enough, add any available employees sorted by weeks since Friday
+                            if (selectedEmployees.length < requiredEmployees) {
+                                const remaining = availableEmployees
+                                    .filter(e => !selectedEmployees.includes(e))
+                                    .sort((a, b) => b.weeksSinceFriday - a.weeksSinceFriday)
+                                    .slice(0, requiredEmployees - selectedEmployees.length);
+                                selectedEmployees = [...selectedEmployees, ...remaining];
+                            }
+                            
+                            // Limit to required number
+                            selectedEmployees = selectedEmployees.slice(0, requiredEmployees);
+                        }
+                        
+                        // Assign each selected employee
+                        selectedEmployees.forEach(assignedEmployee => {
+                            assignedEmployee.shiftsCount++;
+                            
+                            if (isFriday && !isNightOnCall) {
+                                assignedEmployee.weeksSinceFriday = 0;
+                                assignedEmployee.fridayCount = (assignedEmployee.fridayCount || 0) + 1;
+                            }
+                            
+                            // Determine if this shift is work from home
+                            // Friday: all work from home (except night on-call)
+                            // Night on-call: work from home
+                            let workingFromHome = false;
+                            if (isFriday && !isNightOnCall) {
+                                workingFromHome = true;
+                            } else if (isNightOnCall) {
+                                workingFromHome = true;
+                            } else {
+                                workingFromHome = shouldWorkFromHome(
+                                    assignedEmployee, 
+                                    shift, 
+                                    false, 
+                                    assignedEmployee.weeklyHomeWorkCount
+                                );
+                                
+                                if (workingFromHome && !isEveningShift(shift.start)) {
+                                    assignedEmployee.weeklyHomeWorkCount++;
+                                }
+                            }
+                            
+                            schedule.push({
+                                date: dateStr,
+                                day: dayName,
+                                shift: shift.name,
+                                shiftTime: `${shift.start}-${shift.end}`,
+                                employee: assignedEmployee.name,
+                                isFriday: isFriday,
+                                workFromHome: workingFromHome,
+                                isSafetyOfficer: assignedEmployee.isSafetyOfficer,
+                                isNightOnCall: isNightOnCall
+                            });
+                        });
+                    });
+                }
+                
+                // Increment weeks since Friday for all employees
+                employeeSchedule.forEach(e => e.weeksSinceFriday++);
+            }
+            
+            displaySchedule();
+        }
+
+        function getDayName(dayIndex) {
+            const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+            return days[dayIndex];
+        }
+
+        function formatHebrewDate(date) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}.${month}.${year}`;
+        }
+
+        function displaySchedule() {
+            const section = document.getElementById('scheduleSection');
+            const table = document.getElementById('scheduleTable');
+            
+            section.style.display = 'block';
+            
+            const groupedByDate = {};
+            schedule.forEach(item => {
+                if (!groupedByDate[item.date]) {
+                    groupedByDate[item.date] = [];
+                }
+                groupedByDate[item.date].push(item);
+            });
+            
+            let html = '<table><thead><tr><th>תאריך</th><th>יום</th>';
+            
+            // Sort shifts for consistent column order
+            const sortedShifts = [...shifts].sort((a, b) => {
+                const timeToMinutes = (time) => {
+                    const [hours, minutes] = time.split(':').map(Number);
+                    return hours * 60 + minutes;
+                };
+                return timeToMinutes(a.start) - timeToMinutes(b.start);
+            });
+            
+            sortedShifts.forEach(shift => {
+                html += `<th>${shift.name}<br><small>${shift.start}-${shift.end}</small></th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            Object.keys(groupedByDate).forEach(date => {
+                const dayShifts = groupedByDate[date];
+                const isFriday = dayShifts[0].isFriday;
+                
+                html += `<tr${isFriday ? ' style="background: #fffef0; border-right: 4px solid #ffc107;"' : ''}>`;
+                html += `<td><strong>${date}</strong></td>`;
+                html += `<td><strong>${dayShifts[0].day}${isFriday ? ' ⭐' : ''}</strong></td>`;
+                
+                sortedShifts.forEach(shift => {
+                    const assignedToShift = dayShifts.filter(s => s.shift === shift.name);
+                    
+                    if (assignedToShift.length > 0) {
+                        const employeesHtml = assignedToShift.map(assigned => {
+                            if (assigned.employee === '---') return '<span style="color: #999;">---</span>';
+                            
+                            const employee = employees.find(e => e.name === assigned.employee);
+                            const color = employee ? employee.color : '#667eea';
+                            const textColor = getContrastColor(color);
+                            const workFromHome = assigned.workFromHome;
+                            const isSafetyOfficer = assigned.isSafetyOfficer;
+                            const isNightOnCall = assigned.isNightOnCall;
+                            const scheduleItemJson = JSON.stringify(assigned).replace(/"/g, '&quot;');
+                            
+                            // For weekend on-call shifts, show moon icon instead of home
+                            const icons = [];
+                            if (isNightOnCall) {
+                                icons.push('<span class="home-icon" title="כונן סופ״ש">🌙</span>');
+                            } else if (workFromHome) {
+                                icons.push('<span class="home-icon">🏠</span>');
+                            }
+                            if (isSafetyOfficer) {
+                                icons.push('<span class="home-icon" title="אחמ״ש">🦺</span>');
+                            }
+                            
+                            return `<span class="shift-cell" 
+                                        style="background-color: ${color}; color: ${textColor}; margin: 2px; display: inline-flex;"
+                                        oncontextmenu="showContextMenu(event, ${scheduleItemJson}); return false;">
+                                        ${icons.join('')}
+                                        <span class="employee-name-badge">${assigned.employee}</span>
+                                    </span>`;
+                        }).join(' ');
+                        
+                        html += `<td style="padding: 8px;">${employeesHtml}</td>`;
+                    } else {
+                        html += '<td>-</td>';
+                    }
+                });
+                
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            table.innerHTML = html;
+            
+            // Scroll to schedule
+            section.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Initialize
+        loadData();
+        
+        // Set default start date to next Sunday
+        const today = new Date();
+        const daysUntilSunday = (7 - today.getDay()) % 7;
+        const nextSunday = new Date(today);
+        nextSunday.setDate(today.getDate() + (daysUntilSunday === 0 ? 7 : daysUntilSunday));
+        document.getElementById('startDate').valueAsDate = nextSunday;
+    </script>
+</body>
+</html>
