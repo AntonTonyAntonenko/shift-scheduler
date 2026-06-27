@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ShiftFlow v1.41.2 – מערכת שיבוץ</title>
+<title>ShiftFlow v1.41.3 – מערכת שיבוץ</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232563eb'/%3E%3Crect x='10' y='14' width='44' height='40' rx='6' fill='white'/%3E%3Cpath d='M10 24h44' stroke='%232563eb' stroke-width='5'/%3E%3Ccircle cx='22' cy='37' r='4' fill='%2316a34a'/%3E%3Ccircle cx='34' cy='37' r='4' fill='%23f97316'/%3E%3Ccircle cx='46' cy='37' r='4' fill='%23ef4444'/%3E%3C/svg%3E">
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -400,6 +401,34 @@ body.sf-compact-2 .cell-wfh,body.sf-compact-2 .cell-role{flex:0 0 auto!important
 .wfh-summary-item.complete{border-color:#bbf7d0;background:#f0fff4;color:#166534;font-weight:800}
 .wfh-deficit-line{font-size:.82em;color:var(--text2);font-weight:700;margin-bottom:8px;line-height:1.6}
 
+
+/* V1.41.3 readability and browser polish */
+.schedule-table.checks-table td.time-col{
+  width:196px!important;min-width:176px!important;max-width:224px!important;
+  white-space:normal!important;overflow:hidden!important;text-align:right!important;
+  padding:8px 10px!important;line-height:1.25!important;vertical-align:middle!important;
+}
+.schedule-table.checks-table th.row-header{width:196px!important;min-width:176px!important;max-width:224px!important}
+.check-title{display:block;font-weight:900;color:var(--text2);white-space:normal;word-break:normal;overflow-wrap:anywhere;line-height:1.25}
+.check-subtitle{display:block;font-size:.76em;color:var(--text3);margin-top:3px;font-weight:800;white-space:nowrap}
+.check-empty-note{display:flex;align-items:center;justify-content:center;text-align:center;min-height:34px;color:var(--text3);font-size:.84em;font-weight:800}
+.check-emp-chip{display:flex;align-items:center;justify-content:center;gap:5px;min-height:32px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.sf-compact-1 .schedule-table.checks-table td.time-col,body.sf-compact-2 .schedule-table.checks-table td.time-col{width:170px!important;min-width:154px!important;max-width:190px!important;font-size:.72em!important;padding:6px 8px!important}
+body.sf-compact-1 .schedule-table.checks-table th.row-header,body.sf-compact-2 .schedule-table.checks-table th.row-header{width:170px!important;min-width:154px!important;max-width:190px!important}
+body.sf-compact-2 .checks-table .check-emp-chip{justify-content:flex-start;text-align:right;min-height:24px;padding:3px 6px!important;font-size:.72em!important}
+body.sf-compact-2 .shift-cell{display:grid!important;grid-template-columns:18px minmax(38px,1fr) auto auto;justify-items:start!important;align-items:center!important}
+body.sf-compact-2 .shift-cell .cell-num{grid-column:1}
+body.sf-compact-2 .shift-cell .cell-name{grid-column:2;width:100%!important}
+body.sf-compact-2 .shift-cell .cell-role,body.sf-compact-2 .shift-cell .cell-wfh{justify-self:end}
+body.sf-time-soft .schedule-table td.time-col,body.sf-time-soft .schedule-table th.row-header,body.sf-time-soft .friday-panel-time,body.sf-time-soft .friday-time-range{font-weight:600!important;color:var(--text2)!important}
+body.sf-time-soft .schedule-table td.time-col .shift-time-text{font-weight:600!important}
+.friday-time-range{display:inline-block!important;white-space:nowrap!important;direction:ltr!important;unicode-bidi:isolate!important}
+.wfh-summary-item.partial,.wfh-metric-pill.warn{border-color:#fdba74!important;background:#fff7ed!important;color:#f97316!important}
+.badge-new-employee{background:#fff7ed!important;color:#f97316!important;border:1px solid #fdba74!important}
+.main-layout.sidebar-collapsed .sidebar{overflow:visible!important;padding-top:10px}
+.main-layout.sidebar-collapsed .nav-item[data-tab="home"]{display:flex!important;visibility:visible!important;opacity:1!important;margin-bottom:4px;background:var(--primary-light)}
+.main-layout.sidebar-collapsed .nav-item[data-tab="home"] .nav-icon{filter:drop-shadow(0 2px 3px rgba(37,99,235,.18))}
+
 </style>
 </head>
 <body>
@@ -530,7 +559,7 @@ body.sf-compact-2 .cell-wfh,body.sf-compact-2 .cell-role{flex:0 0 auto!important
             <button class="btn btn-ghost btn-sm" onclick="resetScheduleZoom()">↺ איפוס</button>
             <button class="btn btn-warning btn-sm" id="home-add-toggle-btn" onclick="toggleAddButtonsVisibility()">הסתר +</button>
             <button class="btn btn-ghost btn-sm" onclick="cycleCompactScheduleView()" id="home-compact-btn">תצוגה רגילה</button>
-            <button class="btn btn-ghost btn-sm" onclick="openTableLayoutEditor()">🧩 עריכת טבלה</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleTimeTextWeight()" id="home-time-weight-btn">שעות בולטות</button>
           </div>
           <div id="home-schedule-output"></div>
         </div>
@@ -804,7 +833,7 @@ body.sf-compact-2 .cell-wfh,body.sf-compact-2 .cell-role{flex:0 0 auto!important
             <button class="btn btn-ghost btn-sm" onclick="resetScheduleZoom()">↺ איפוס</button>
             <button class="btn btn-warning btn-sm" id="schedule-add-toggle-btn" onclick="toggleAddButtonsVisibility()">הסתר +</button>
             <button class="btn btn-ghost btn-sm" onclick="cycleCompactScheduleView()" id="schedule-compact-btn">תצוגה רגילה</button>
-            <button class="btn btn-ghost btn-sm" onclick="toggleTableLayoutEditor()">🧩 עריכת טבלה</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleTimeTextWeight()" id="schedule-time-weight-btn">שעות בולטות</button>
           </div>
         </div>
         <div class="card table-layout-editor" id="table-layout-editor" hidden>
@@ -919,7 +948,7 @@ body.sf-compact-2 .cell-wfh,body.sf-compact-2 .cell-role{flex:0 0 auto!important
   </div>
   <footer class="app-footer">
     <span>כל הזכויות שמורות ל־A.T.A ShiftFlow</span>
-    <span class="version-pill" id="version-footer">גרסה 1.41.2</span>
+    <span class="version-pill" id="version-footer">גרסה 1.41.3</span>
   </footer>
 </div>
 
@@ -1026,7 +1055,7 @@ body.sf-compact-2 .cell-wfh,body.sf-compact-2 .cell-role{flex:0 0 auto!important
 // ============================================================
 // DATA & STATE
 // ============================================================
-const APP_VERSION = '1.41.2';
+const APP_VERSION = '1.41.3';
 const APP_PASSWORD_KEY = 'sf_password';
 const DEFAULT_PASSWORD = '071293';
 
@@ -3409,7 +3438,7 @@ function buildScheduleTable(wg,wi){
         endTime=shiftDef?shiftDef.end:'?';
       }
       mainTable+=`<tr>
-        <td class="time-col"><span style="font-weight:800">${shiftStart} – ${endTime||'?'}</span></td>
+        <td class="time-col"><span class="shift-time-text">${shiftStart} – ${endTime||'?'}</span></td>
         ${weekdayDays.map(day=>buildScheduleCell(day,shiftStart,wi)).join('')}
       </tr>`;
     });
@@ -3513,7 +3542,7 @@ function buildChecksTable(wg,wi){
   const workDays=wg.days.filter(d=>d.dayOfWeek!==6);
 
   let t=`<h4 style="margin:26px 0 12px;color:var(--primary);font-size:1.05em;display:flex;align-items:center;gap:8px">✅ בדיקות בוקר לביצוע</h4>`;
-  t+=`<div class="schedule-wrapper"><table class="schedule-table">
+  t+=`<div class="schedule-wrapper"><table class="schedule-table checks-table">
   <thead><tr>
     <th class="row-header">בדיקה</th>
     ${workDays.map(d=>{
@@ -3524,7 +3553,7 @@ function buildChecksTable(wg,wi){
 
   checks.forEach(chk=>{
     t+=`<tr>
-      <td class="time-col">${chk.icon} ${chk.name}<br><span style="font-size:.78em;color:var(--text3)">מגיעים ב-${chk.time}</span></td>
+      <td class="time-col"><span class="check-title">${chk.icon} ${chk.name}</span><span class="check-subtitle">מגיעים ב-${chk.time}</span></td>
       ${workDays.map(day=>{
         if(day.holiday && isShiftBlockedByHoliday(day.holiday, chk.time)){
           return `<td><div class="holiday-cell">🎉 ${day.holiday.name}</div></td>`;
@@ -3534,7 +3563,7 @@ function buildChecksTable(wg,wi){
 
         // Friday: rooms check is skipped (everyone works from home)
         if(day.dayOfWeek===5 && chk.id==='chk-rooms'){
-          return `<td><span style="color:var(--text3);font-size:.85em">לא נדרש בשישי (ע.מהבית)</span></td>`;
+          return `<td><div class="check-empty-note">לא נדרש בשישי (ע.מהבית)</div></td>`;
         }
 
         let pool;
@@ -3544,7 +3573,7 @@ function buildChecksTable(wg,wi){
           const arriving = getEmployeesArrivingAt(day, chk.time);
           if(!arriving.length){
             return `<td>
-              <span style="color:var(--text3);font-size:.85em">— אין עובד בשעה זו —</span>
+              <div class="check-empty-note">— אין עובד בשעה זו —</div>
               <button class="btn-icon btn btn-ghost btn-sm" onclick="openCheckAssign('${chk.id}','${dayKey}',${wi})" style="width:100%;margin-top:4px">✏️ שבץ ידנית</button>
             </td>`;
           }
@@ -3554,7 +3583,7 @@ function buildChecksTable(wg,wi){
           pool = pool.filter(e=>!e.isManager&&!e.isSenior);
           if(!pool.length){
             return `<td>
-              <span style="color:var(--text3);font-size:.85em">— אין תומך רגיל בשעה זו —</span>
+              <div class="check-empty-note">— אין תומך רגיל בשעה זו —</div>
               <button class="btn-icon btn btn-ghost btn-sm" onclick="openCheckAssign('${chk.id}','${dayKey}',${wi})" style="width:100%;margin-top:4px">✏️ שבץ ידנית</button>
             </td>`;
           }
@@ -3572,7 +3601,7 @@ function buildChecksTable(wg,wi){
         const selected = pool.slice(0, chk.count);
         const cellsHtml = selected.map(emp=>{
           const textColor=getContrastColor(emp.color);
-          return `<div style="background:${emp.color};color:${textColor};padding:7px 10px;border-radius:8px;font-weight:700;text-align:center;font-size:.85em;margin-bottom:4px;cursor:pointer" onclick="openCheckAssign('${chk.id}','${dayKey}',${wi})" title="לחץ לשינוי שיבוץ">#${emp.employeeNumber} ${emp.name}</div>`;
+          return `<div class="check-emp-chip" style="background:${emp.color};color:${textColor};padding:7px 10px;border-radius:8px;font-weight:800;font-size:.85em;margin-bottom:4px;cursor:pointer" onclick="openCheckAssign('${chk.id}','${dayKey}',${wi})" title="לחץ לשינוי שיבוץ"><span>#${emp.employeeNumber}</span><span>${emp.name}</span></div>`;
         }).join('');
         return `<td>${cellsHtml}</td>`;
       }).join('')}
@@ -4287,7 +4316,7 @@ function getScheduleWfhStats(sched){
   return {total:totalDays,required:requiredDays,missing:zero,missingDays,eligible,received,complete,partial,zero,newEmployees,missingNames:[...new Set(shortNames)]};
 }
 
-const TABLE_LAYOUT_DEFAULTS={compact:0,dayMin:132,dayMax:168,dayOrder:[0,1,2,3,4],hideMenuButtons:false};
+const TABLE_LAYOUT_DEFAULTS={compact:0,dayMin:132,dayMax:168,dayOrder:[0,1,2,3,4],hideMenuButtons:false,timeSoft:false};
 let tableLayout={...TABLE_LAYOUT_DEFAULTS};
 
 function loadTableLayout(){
@@ -4308,6 +4337,7 @@ function applyTableLayout(){
   document.body.classList.toggle('sf-compact-1', +tableLayout.compact===1);
   document.body.classList.toggle('sf-compact-2', +tableLayout.compact===2);
   document.body.classList.toggle('sf-hide-menu-buttons', !!tableLayout.hideMenuButtons);
+  document.body.classList.toggle('sf-time-soft', !!tableLayout.timeSoft);
   updateCompactButtons();
   syncTableLayoutForm();
 }
@@ -4321,6 +4351,7 @@ function getOrderedWeekdayDays(days){
 function updateCompactButtons(){
   const labels=['תצוגה רגילה','תצוגה צפופה','סופר צפוף'];
   ['schedule-compact-btn','home-compact-btn'].forEach(id=>{const el=document.getElementById(id); if(el) el.textContent=labels[+tableLayout.compact||0];});
+  ['schedule-time-weight-btn','home-time-weight-btn'].forEach(id=>{const el=document.getElementById(id); if(el) el.textContent=tableLayout.timeSoft?'שעות רגילות':'שעות בולטות';});
 }
 
 function cycleCompactScheduleView(){
@@ -4329,6 +4360,14 @@ function cycleCompactScheduleView(){
   if(tableLayout.compact===2){tableLayout.dayMin=Math.min(tableLayout.dayMin||112,100);tableLayout.dayMax=Math.min(tableLayout.dayMax||140,124);tableLayout.hideMenuButtons=true;}
   saveTableLayout();
   renderSchedule(true);
+}
+
+
+function toggleTimeTextWeight(){
+  tableLayout.timeSoft=!tableLayout.timeSoft;
+  saveTableLayout();
+  applyTableLayout();
+  toast(tableLayout.timeSoft?'שעות המשמרת מוצגות רגיל':'שעות המשמרת מוצגות בולט');
 }
 
 function openTableLayoutEditor(){
