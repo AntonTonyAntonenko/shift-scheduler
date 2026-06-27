@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ShiftFlow v11 – מערכת שיבוץ</title>
+<title>ShiftFlow v1.41.1 – מערכת שיבוץ</title>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -19,6 +19,41 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);min-height:100vh;color:var(--text)}
+
+/* V1.41.1 refinements */
+.header-stats{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;white-space:nowrap;margin-inline-start:6px}
+.header-stat-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:999px;background:var(--primary-light);color:var(--primary-dark);font-size:.76em;font-weight:900;border:1px solid rgba(37,99,235,.16)}
+.header-stat-pill.warn{background:#ffedd5;color:#c2410c;border-color:#fed7aa}
+.header-stat-pill.good{background:#dcfce7;color:#166534;border-color:#bbf7d0}
+@media(max-width:1100px){.header-stats{display:none}}
+.sidebar{position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto;align-self:flex-start}
+.btn,.nav-item,.header-menu-btn,.sidebar-tool-btn,.theme-dot,.mini-add-btn,.cell-menu-btn{transition:transform .16s ease, box-shadow .16s ease, background-color .16s ease, border-color .16s ease, color .16s ease, opacity .16s ease}
+.btn:hover,.header-menu-btn:hover,.sidebar-tool-btn:hover,.mini-add-btn:hover{transform:translateY(-1px);box-shadow:0 7px 16px rgba(15,23,42,.10)}
+.btn:active,.header-menu-btn:active,.sidebar-tool-btn:active,.mini-add-btn:active{transform:translateY(0) scale(.98)}
+.nav-item:hover{transform:translateX(-2px)}
+.theme-dot{box-shadow:0 0 0 2px rgba(255,255,255,.9),0 5px 12px rgba(15,23,42,.18)}
+.theme-dot:hover{transform:translateY(-1px) scale(1.28);box-shadow:0 0 0 3px rgba(255,255,255,.95),0 9px 18px rgba(15,23,42,.22)}
+.home-kpi{transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease}
+.home-kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg);border-color:var(--primary)}
+.manager-only-summary{margin-top:16px}
+body.sf-exporting .manager-only-summary{display:none!important}
+.wfh-summary-metrics{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.wfh-metric-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 10px;font-size:.8em;font-weight:900;background:var(--surface);border:1px solid var(--border);color:var(--text2)}
+.wfh-metric-pill.primary{background:var(--primary-light);border-color:var(--primary);color:var(--primary-dark)}
+.wfh-metric-pill.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
+.wfh-metric-pill.bad{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+.schedule-table th.row-header{min-width:74px;width:82px;padding-right:8px;text-align:center}
+.schedule-table td.time-col{width:82px;min-width:74px!important;max-width:88px!important;text-align:center;padding:6px 8px;line-height:1.25}
+.friday-panel{background:#f8fbff;border-color:#bfdbfe}
+.friday-panel-time{flex:0 0 86px;background:#eff6ff;color:#1e3a8a;font-family:'Segoe UI',system-ui,sans-serif;word-break:normal;line-height:1.25;padding:8px 6px}
+.friday-time-range{display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:900;direction:ltr;unicode-bidi:isolate}
+.friday-time-range span:last-child{opacity:.62;font-size:.9em}
+.friday-oncall-label{font-family:'Segoe UI',system-ui,sans-serif;font-size:.78em;line-height:1.25;direction:rtl}
+.weekday-oncall-panel{padding:10px 14px;background:linear-gradient(135deg,#eff6ff,#e0f2fe);border-color:#93c5fd;margin-top:12px;border-radius:var(--radius);box-shadow:var(--shadow)}
+.weekday-oncall-panel-inner{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
+.weekday-oncall-title{font-weight:900;color:#1e3a8a}
+body.sf-compact-2 .schedule-table td.time-col{width:64px;min-width:60px!important;max-width:70px!important;padding:4px 4px;font-size:.68em}
+body.sf-compact-2 .schedule-table th.row-header{width:64px;min-width:60px}
 
 /* LOGIN */
 #login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#4f63d2 0%,#38b2ac 100%);display:flex;align-items:center;justify-content:center;z-index:9999}
@@ -420,17 +455,18 @@ body.sf-hide-menu-buttons .cell-menu-btn{display:none!important}
 <!-- APP -->
 <div id="app">
   <header class="app-header">
-    <div style="display:flex;align-items:center;gap:8px">
+    <div style="display:flex;align-items:center;gap:8px;min-width:0">
       <button class="header-menu-btn" title="פתח / סגור תפריט" onclick="toggleSidebar()">☰</button>
       <div class="app-logo" onclick="showTab('home')">🗓️ ShiftFlow</div>
+      <div class="header-stats" id="header-stats"></div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <div style="display:flex;gap:5px" id="theme-dots">
-        <button class="theme-dot" title="כחול (ברירת מחדל)" onclick="applyTheme('blue')" style="background:#4f63d2"></button>
-        <button class="theme-dot" title="ירוק" onclick="applyTheme('green')" style="background:#059669"></button>
-        <button class="theme-dot" title="סגול" onclick="applyTheme('purple')" style="background:#7c3aed"></button>
-        <button class="theme-dot" title="כהה" onclick="applyTheme('dark')" style="background:#1e293b"></button>
-        <button class="theme-dot" title="בהיר חם" onclick="applyTheme('warm')" style="background:#b45309"></button>
+        <button class="theme-dot" title="כחול חי" onclick="applyTheme('blue')" style="background:#2563eb"></button>
+        <button class="theme-dot" title="ירוק חי" onclick="applyTheme('green')" style="background:#10b981"></button>
+        <button class="theme-dot" title="סגול חי" onclick="applyTheme('purple')" style="background:#8b5cf6"></button>
+        <button class="theme-dot" title="כהה חד" onclick="applyTheme('dark')" style="background:#111827"></button>
+        <button class="theme-dot" title="כתום חי" onclick="applyTheme('warm')" style="background:#f97316"></button>
       </div>
       <div id="fb-pill" class="firebase-pill">🔄 מתחבר...</div>
     </div>
@@ -864,7 +900,7 @@ body.sf-hide-menu-buttons .cell-menu-btn{display:none!important}
   </div>
   <footer class="app-footer">
     <span>כל הזכויות שמורות ל־A.T.A ShiftFlow</span>
-    <span class="version-pill" id="version-footer">גרסה 11</span>
+    <span class="version-pill" id="version-footer">גרסה 1.41.1</span>
   </footer>
 </div>
 
@@ -971,7 +1007,7 @@ body.sf-hide-menu-buttons .cell-menu-btn{display:none!important}
 // ============================================================
 // DATA & STATE
 // ============================================================
-const APP_VERSION = '11';
+const APP_VERSION = '1.41.1';
 const APP_PASSWORD_KEY = 'sf_password';
 const DEFAULT_PASSWORD = '071293';
 
@@ -1005,29 +1041,29 @@ const db = firebase.firestore();
 // ============================================================
 const THEMES = {
   blue: {
-    '--primary':'#4f63d2','--primary-light':'#eef0fc','--primary-dark':'#3a4db0',
-    '--accent':'#38b2ac','--bg':'#f0f2f7','--surface':'#fff','--surface2':'#f7f8fc',
-    '--border':'#e4e8f0','--text':'#1a202c','--text2':'#4a5568','--text3':'#a0aec0',
+    '--primary':'#2563eb','--primary-light':'#dbeafe','--primary-dark':'#1d4ed8',
+    '--accent':'#06b6d4','--bg':'#eef6ff','--surface':'#fff','--surface2':'#f8fbff',
+    '--border':'#bfdbfe','--text':'#0f172a','--text2':'#334155','--text3':'#64748b',
   },
   green: {
-    '--primary':'#059669','--primary-light':'#ecfdf5','--primary-dark':'#047857',
-    '--accent':'#0891b2','--bg':'#f0f4f2','--surface':'#fff','--surface2':'#f4faf7',
-    '--border':'#d1fae5','--text':'#1a202c','--text2':'#374151','--text3':'#9ca3af',
+    '--primary':'#10b981','--primary-light':'#d1fae5','--primary-dark':'#047857',
+    '--accent':'#22d3ee','--bg':'#ecfdf5','--surface':'#fff','--surface2':'#f7fffb',
+    '--border':'#a7f3d0','--text':'#0f172a','--text2':'#334155','--text3':'#64748b',
   },
   purple: {
-    '--primary':'#7c3aed','--primary-light':'#f5f3ff','--primary-dark':'#6d28d9',
-    '--accent':'#0891b2','--bg':'#f4f1fb','--surface':'#fff','--surface2':'#f9f7fe',
-    '--border':'#ede9fe','--text':'#1a202c','--text2':'#374151','--text3':'#9ca3af',
+    '--primary':'#8b5cf6','--primary-light':'#ede9fe','--primary-dark':'#6d28d9',
+    '--accent':'#ec4899','--bg':'#f5f3ff','--surface':'#fff','--surface2':'#fbfaff',
+    '--border':'#ddd6fe','--text':'#0f172a','--text2':'#334155','--text3':'#64748b',
   },
   dark: {
-    '--primary':'#818cf8','--primary-light':'#1e293b','--primary-dark':'#6366f1',
-    '--accent':'#34d399','--bg':'#0f172a','--surface':'#1e293b','--surface2':'#1e293b',
-    '--border':'#334155','--text':'#f1f5f9','--text2':'#94a3b8','--text3':'#64748b',
+    '--primary':'#60a5fa','--primary-light':'#172554','--primary-dark':'#2563eb',
+    '--accent':'#34d399','--bg':'#020617','--surface':'#0f172a','--surface2':'#111827',
+    '--border':'#334155','--text':'#f8fafc','--text2':'#cbd5e1','--text3':'#64748b',
   },
   warm: {
-    '--primary':'#b45309','--primary-light':'#fffbeb','--primary-dark':'#92400e',
-    '--accent':'#059669','--bg':'#fdf8f0','--surface':'#fff','--surface2':'#fefce8',
-    '--border':'#fde68a','--text':'#1a202c','--text2':'#4a5568','--text3':'#a0aec0',
+    '--primary':'#f97316','--primary-light':'#ffedd5','--primary-dark':'#c2410c',
+    '--accent':'#eab308','--bg':'#fff7ed','--surface':'#fff','--surface2':'#fffbeb',
+    '--border':'#fed7aa','--text':'#0f172a','--text2':'#334155','--text3':'#78716c',
   },
 };
 
@@ -3245,8 +3281,8 @@ function renderSchedule(skipAutoSave){
     </div>
     <div class="card" id="week-block-${wi}">
       ${buildScheduleTable(wg,wi)}
-      ${buildWfhSummaryTable(wg,wi)}
       ${buildChecksTable(wg,wi)}
+      ${buildWfhSummaryTable(wg,wi)}
     </div>`;
   });
   el.innerHTML=html;
@@ -3378,26 +3414,26 @@ function buildScheduleTable(wg,wi){
         const sa=fridayDay.shiftAssignments.find(s=>s.start===shiftStart);
         const endTime=sa?.end||'?';
         fridayPanel+=`<div class="friday-panel-row">
-          <div class="friday-panel-time">${shiftStart}<span style="opacity:.6"> – ${endTime}</span></div>
+          <div class="friday-panel-time"><span class="friday-time-range"><span>${shiftStart}</span><span>${endTime}</span></span></div>
           <div class="friday-panel-cell">${buildScheduleCellContent(fridayDay,shiftStart,wi)}</div>
         </div>`;
       });
     }
     const onCallEmp=getEmpById(fridayDay._weekendOnCallEmployeeId||wg.weekendOnCallEmployeeId||getDefaultWeekendOnCallId());
     fridayPanel+=`<div class="friday-panel-row">
-      <div class="friday-panel-time friday-oncall-label">📞 כונן סופ״ש</div>
+      <div class="friday-panel-time friday-oncall-label"><span>📞</span><strong>כונן</strong><span>סופ״ש</span></div>
       <div class="friday-panel-cell">${buildOnCallCell(onCallEmp,wi,'weekend')}</div>
     </div>`;
     fridayPanel+=`</div>`;
   }
 
   const weekdayManager=wg?.weekdayManagerOnCall?.enabled?getEmpById(wg.weekdayManagerOnCall.employeeId):null;
-  const weekdayOnCallPanel=weekdayManager?`<div class="card" style="padding:10px 14px;background:#eff6ff;border-color:#bfdbfe;margin-top:12px">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between">
-      <strong>📞 כונן אחמ״ש א׳–ה׳ | ${wg.weekdayManagerOnCall.start||''} – ${wg.weekdayManagerOnCall.end||''}</strong>
+  const weekdayOnCallPanel=weekdayManager?`<div class="weekday-oncall-panel">
+    <div class="weekday-oncall-panel-inner">
+      <div class="weekday-oncall-title">📞 כונן אחמ״ש א׳–ה׳ <span style="opacity:.75">| ${wg.weekdayManagerOnCall.start||''} – ${wg.weekdayManagerOnCall.end||''}</span></div>
       <div style="min-width:220px">${buildOnCallCell(weekdayManager,wi,'manager')}</div>
     </div>
-  </div>`:(settings.managerOnCallEnabled?`<div class="card" style="padding:10px 14px;background:var(--warning-light);margin-top:12px">📞 כונן אחמ״ש פעיל בהגדרות, אבל לא נמצא אחמ״ש זמין. <button class="btn btn-ghost btn-sm" onclick="openWeekManagerOnCallModal(${wi})">בחר ידנית</button></div>`:'');
+  </div>`:(settings.managerOnCallEnabled?`<div class="weekday-oncall-panel" style="background:var(--warning-light);border-color:#fde68a">📞 כונן אחמ״ש פעיל בהגדרות, אבל לא נמצא אחמ״ש זמין. <button class="btn btn-ghost btn-sm" onclick="openWeekManagerOnCallModal(${wi})">בחר ידנית</button></div>`:'');
 
   return `<div class="schedule-row-layout">${mainTable}${fridayPanel}</div>${weekdayOnCallPanel}`;
 }
@@ -3648,12 +3684,14 @@ function moveEmpToSlot(empId,fromShift,fromDay,toShift,toDay,weekIdx){
   const empIdx=fromSA.employees.findIndex(a=>a.employeeId===empId);
   if(empIdx===-1)return;
   const empAssign=fromSA.employees[empIdx];
+  const sourceWasWFH=isAssignmentWFH(empAssign,fromSA,fromDayObj);
   let toSA=toDayObj.shiftAssignments.find(s=>s.start===toShift);
   const shiftDef=shifts.find(s=>s.start===toShift);
   const targetIsWFH=!!(toSA?.isWFH||shiftDef?.isWFH||empAssign.isWFH||toDay===5);
   const errors=validateEmployeeForSlot(empId,toShift,toDay,toDayObj.dateStr,targetIsWFH);
   if(errors.length){toast('❌ '+errors[0],'error');return;}
   const [movedAssign]=fromSA.employees.splice(empIdx,1);
+  if(sourceWasWFH){movedAssign.isWFH=true; delete movedAssign.wfhOverride;}
   if(!toSA){
     toSA={shiftId:shiftDef?.id||Date.now(),start:toShift,end:shiftDef?.end||'',isWFH:shiftDef?.isWFH||false,employees:[]};
     toDayObj.shiftAssignments.push(toSA);
@@ -3774,7 +3812,7 @@ function setEmployeeWFHFlag(empId, value){
   const emp=employees.find(e=>e.id===empId);
   if(!emp)return;
   emp.canWFH=value;
-  saveData(); renderEmployees();
+  saveData(); renderEmployees(); renderHome(); renderHeaderStats();
   toast(value?`✅ ${emp.name} מסומן כעובד עם ע.מהבית`:`🚫 ע.מהבית בוטל ל-${emp.name}`);
 }
 
@@ -4130,7 +4168,9 @@ function getWeekWfhSummary(wg){
   const map=new Map();
   employees.forEach(emp=>{
     const eligible=canEmployeeWFH(emp);
-    map.set(emp.id,{emp,count:0,limit:getWfhLimitForEmp(emp),eligible,days:[]});
+    const isNew=!!emp.isNewEmployee;
+    const role=emp.isManager?'manager':(emp.isSenior?'senior':'regular');
+    map.set(emp.id,{emp,count:0,limit:getWfhLimitForEmp(emp),eligible,isNew,role,days:[]});
   });
   (wg?.days||[]).filter(d=>d.dayOfWeek>=0&&d.dayOfWeek<=4).forEach(day=>{
     (day.shiftAssignments||[]).forEach(sa=>{
@@ -4150,36 +4190,60 @@ function getWeekWfhSummary(wg){
   });
 }
 
-function buildWfhSummaryTable(wg,wi){
+function getWfhSummaryMetrics(wg){
   const rows=getWeekWfhSummary(wg);
+  const eligibleRows=rows.filter(r=>r.eligible&&r.limit>0);
+  const receivedRows=eligibleRows.filter(r=>r.count>0);
+  const missingRows=eligibleRows.filter(r=>r.count===0);
+  const newRows=rows.filter(r=>r.isNew);
+  const ineligibleRows=rows.filter(r=>!r.eligible&&!r.isNew);
+  const totalDays=eligibleRows.reduce((sum,r)=>sum+r.count,0);
+  return {rows,eligibleRows,receivedRows,missingRows,newRows,ineligibleRows,totalDays};
+}
+
+function buildWfhSummaryTable(wg,wi){
+  const {rows,eligibleRows,receivedRows,missingRows,newRows,ineligibleRows,totalDays}=getWfhSummaryMetrics(wg);
   if(!rows.length) return '';
-  const eligibleRows=rows.filter(r=>r.eligible || r.count>0);
-  const missing=eligibleRows.filter(r=>r.eligible&&r.limit>0&&r.count===0);
-  const total=eligibleRows.reduce((sum,r)=>sum+r.count,0);
-  const items=eligibleRows.map(r=>{
+  const visibleRows=[...eligibleRows,...newRows,...ineligibleRows.filter(r=>r.count>0)];
+  const items=visibleRows.map(r=>{
     const cls=!r.eligible?'ineligible':(r.limit>0&&r.count===0?'missing':'ok');
     const role=r.emp.isManager?'אחמ״ש':r.emp.isSenior?(settings.seniorName||'בכיר'):'תומך';
     const detail=r.days.length?` title="${r.days.join(', ')}"`:'';
-    const limitTxt=r.eligible?`/ ${r.limit}`:'לא זכאי';
+    const limitTxt=r.eligible?`/ ${r.limit}`:(r.isNew?'עובד חדש':'לא זכאי');
     return `<div class="wfh-summary-item ${cls}"${detail}>
-      <span>#${r.emp.employeeNumber} ${r.emp.name}<small style="display:block;color:var(--text3);font-weight:600">${role}</small></span>
-      <strong>${r.count} ${r.eligible?limitTxt:''}</strong>
+      <span>#${r.emp.employeeNumber} ${r.emp.name}<small style="display:block;color:var(--text3);font-weight:600">${role}${r.isNew?' | חדש':''}</small></span>
+      <strong>${r.count} ${r.eligible?limitTxt:`<small style="font-size:.72em">${limitTxt}</small>`}</strong>
     </div>`;
   }).join('');
-  return `<div class="wfh-summary-card">
-    <div class="wfh-summary-title"><span>🏠 סיכום עבודה מהבית א׳–ה׳</span><span class="wfh-summary-note">סה״כ ${total} | לא קיבלו: ${missing.length?missing.map(r=>r.emp.name).join(', '):'אין'}</span></div>
+  const missingText=missingRows.length?missingRows.map(r=>r.emp.name).join(', '):'אין';
+  return `<div class="wfh-summary-card manager-only-summary" data-manager-only="1">
+    <div class="wfh-summary-title"><span>🏠 סיכום עבודה מהבית א׳–ה׳</span><span class="wfh-summary-note">מיועד להנהלה בלבד ולא ייכלל בתמונת השיבוץ</span></div>
+    <div class="wfh-summary-metrics">
+      <span class="wfh-metric-pill primary">קיבלו ע.מהבית: ${receivedRows.length}/${eligibleRows.length}</span>
+      <span class="wfh-metric-pill">סה״כ ימי בית: ${totalDays}</span>
+      <span class="wfh-metric-pill warn">עובדים חדשים: ${newRows.length}</span>
+      <span class="wfh-metric-pill ${missingRows.length?'bad':''}">לא קיבלו: ${missingRows.length}</span>
+    </div>
+    <div class="wfh-summary-note" style="margin-bottom:8px">שמות שלא קיבלו: ${missingText}</div>
     <div class="wfh-summary-grid">${items}</div>
   </div>`;
 }
 
 function getScheduleWfhStats(sched){
-  let total=0,missing=0;
+  let totalDays=0,missing=0,eligible=0,received=0,newEmployees=0;
+  const receivedIds=new Set(), eligibleIds=new Set(), missingNames=[];
   (sched?.weekGroups||[]).forEach(wg=>{
-    const rows=getWeekWfhSummary(wg).filter(r=>r.eligible);
-    total+=rows.reduce((s,r)=>s+r.count,0);
-    missing+=rows.filter(r=>r.limit>0&&r.count===0).length;
+    const metrics=getWfhSummaryMetrics(wg);
+    totalDays+=metrics.totalDays;
+    metrics.eligibleRows.forEach(r=>eligibleIds.add(r.emp.id));
+    metrics.receivedRows.forEach(r=>receivedIds.add(r.emp.id));
+    metrics.missingRows.forEach(r=>missingNames.push(r.emp.name));
   });
-  return {total,missing};
+  eligible=eligibleIds.size;
+  received=receivedIds.size;
+  missing=Math.max(0,eligible-received);
+  newEmployees=employees.filter(e=>e.isNewEmployee).length;
+  return {total:totalDays,missing,eligible,received,newEmployees,missingNames:[...new Set(missingNames)]};
 }
 
 const TABLE_LAYOUT_DEFAULTS={compact:0,dayMin:128,dayMax:160,dayOrder:[0,1,2,3,4],hideMenuButtons:false};
@@ -4327,11 +4391,24 @@ function updateSidebarPinButton(isPinned){
   if(btn) btn.textContent=isPinned?'📌 מוצמד':'📍 לא מוצמד';
 }
 
+function renderHeaderStats(){
+  const el=document.getElementById('header-stats');
+  if(!el)return;
+  const total=employees.length;
+  const regulars=employees.filter(e=>!e.isManager&&!e.isSenior).length;
+  const managers=employees.filter(e=>e.isManager).length;
+  const seniors=employees.filter(e=>e.isSenior&&!e.isManager).length;
+  const newEmployees=employees.filter(e=>e.isNewEmployee).length;
+  const wfhStats=currentSchedule?getScheduleWfhStats(currentSchedule):{received:0,eligible:employees.filter(e=>canEmployeeWFH(e)).length};
+  el.innerHTML=`<span class="header-stat-pill">עובדים ${total}</span><span class="header-stat-pill good">תומכים ${regulars}</span><span class="header-stat-pill">אחמ״שים ${managers}</span><span class="header-stat-pill">בכירים ${seniors}</span><span class="header-stat-pill warn">חדשים ${newEmployees}</span><span class="header-stat-pill">בית ${wfhStats.received}/${wfhStats.eligible}</span>`;
+}
+
 function renderHome(){
   const kpis=document.getElementById('home-kpis');
   const out=document.getElementById('home-schedule-output');
   const toolbar=document.getElementById('home-export-toolbar');
   if(!kpis||!out)return;
+  renderHeaderStats();
   const totalEmployees=employees.length;
   const regulars=employees.filter(e=>!e.isManager&&!e.isSenior).length;
   const managers=employees.filter(e=>e.isManager).length;
@@ -4339,7 +4416,7 @@ function renderHome(){
   const newEmployees=employees.filter(e=>e.isNewEmployee).length;
   const activeWfh=employees.filter(e=>canEmployeeWFH(e)).length;
   const range=currentSchedule?getScheduleRangeLabel(currentSchedule):'אין שיבוץ שמור';
-  const wfhStats=currentSchedule?getScheduleWfhStats(currentSchedule):{total:0,missing:0};
+  const wfhStats=currentSchedule?getScheduleWfhStats(currentSchedule):{total:0,missing:0,eligible:activeWfh,received:0,newEmployees};
   kpis.innerHTML=`
     <div class="home-kpi"><strong>${totalEmployees}</strong><span>עובדים במערכת</span></div>
     <div class="home-kpi"><strong>${regulars}</strong><span>תומכים רגילים</span></div>
@@ -4347,6 +4424,7 @@ function renderHome(){
     <div class="home-kpi"><strong>${seniors}</strong><span>תומכים בכירים</span></div>
     <div class="home-kpi"><strong>${newEmployees}</strong><span>עובדים חדשים</span></div>
     <div class="home-kpi"><strong>${activeWfh}</strong><span>מורשי עבודה מהבית</span></div>
+    <div class="home-kpi"><strong>${wfhStats.received}/${wfhStats.eligible}</strong><span>קיבלו ע.מהבית א׳–ה׳</span></div>
     <div class="home-kpi"><strong>${wfhStats.total}</strong><span>סה״כ ימי ע.מהבית א׳–ה׳</span></div>
     <div class="home-kpi"><strong style="font-size:1.05em">${range}</strong><span>טווח השיבוץ הנוכחי</span></div>`;
   if(!currentSchedule){
@@ -4364,7 +4442,7 @@ function renderHome(){
           <button class="btn btn-success btn-sm" onclick="shareWeekWhatsApp(${wi})">💬 וואטסאפ</button>
         </div>
       </div>
-      <div class="card" id="home-week-block-${wi}" style="margin-bottom:18px">${buildScheduleTable(wg,wi)}${buildWfhSummaryTable(wg,wi)}${buildChecksTable(wg,wi)}</div>`;
+      <div class="card" id="home-week-block-${wi}" style="margin-bottom:18px">${buildScheduleTable(wg,wi)}${buildChecksTable(wg,wi)}${buildWfhSummaryTable(wg,wi)}</div>`;
   }).join('');
   applyScheduleZoom();
   updateAddButtonsToggleLabels();
@@ -4651,13 +4729,14 @@ function exportWeekImage(weekIdx,source='schedule'){
   const el=document.getElementById(`${source==='home'?'home-week-block':'week-block'}-${weekIdx}`) || document.getElementById(`week-block-${weekIdx}`);
   if(!el){toast('לא נמצא שיבוץ','error');return;}
   toast('📸 יוצר תמונה...');
+  document.body.classList.add('sf-exporting');
   html2canvas(el,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(canvas=>{
     const link=document.createElement('a');
     link.download=`שיבוץ-שבוע-${weekIdx+1}.png`;
     link.href=canvas.toDataURL('image/png');
     link.click();
     toast('✅ התמונה הורדה');
-  }).catch(()=>toast('❌ שגיאה ביצוא','error'));
+  }).catch(()=>toast('❌ שגיאה ביצוא','error')).finally(()=>document.body.classList.remove('sf-exporting'));
 }
 
 function shareWeekWhatsApp(weekIdx){
