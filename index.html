@@ -1261,7 +1261,7 @@ body.sf-exporting .schedule-table td.time-col{font-size:.88em!important;white-sp
 // ============================================================
 // DATA & STATE
 // ============================================================
-const APP_VERSION = '1.42.5';
+const APP_VERSION = '1.42.6';
 const APP_PASSWORD_HASH_KEY = 'sf_password_hash_v2';
 const LEGACY_PASSWORD_KEY = 'sf_password'; // migration only: old local plaintext password key
 const DEFAULT_PASSWORD_HASH = '3c0a7148a98fbe8b800d95c41263624c5128cb166fb1b909bab386b00aa7331f';
@@ -6126,6 +6126,265 @@ addQuickAbsence=function(){
   setTimeout(()=>{ try{ bumpV1423(); removeEmployeeNoteField(); if(currentSchedule){renderSchedule(true); renderHome();} renderAttendance(); renderCoverage(); }catch(e){console.warn('v1.42.5 refresh skipped',e);} },50);
 })();
 
+
+// ============================================================
+// V1.42.6 PATCH — Friday checks restored, WFH toggle stability, SB Friday supporter, absence fix
+// ============================================================
+(function(){
+  const VERSION='1.42.6';
+  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  function setVersionV1426(){
+    document.querySelectorAll('#login-version-label').forEach(el=>el.textContent=VERSION);
+    const vf=document.getElementById('version-footer'); if(vf) vf.textContent='גרסה '+VERSION;
+    const af=document.getElementById('app-footer-version'); if(af) af.textContent=VERSION;
+    const al=document.getElementById('app-version-label'); if(al) al.textContent='גרסה '+VERSION;
+    document.title='מערכת לניהול משמרות';
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',setVersionV1426); else setVersionV1426();
+
+  function injectStyleV1426(){
+    if(document.getElementById('style-v1426')) return;
+    const s=document.createElement('style'); s.id='style-v1426'; s.textContent=`
+      .wfh-summary-card,.wfh-summary-card *{font-family:'Segoe UI',system-ui,sans-serif!important;letter-spacing:0!important}
+      .wfh-summary-item > span{display:flex!important;flex-direction:column!important;gap:3px!important;min-width:0!important;line-height:1.25!important}
+      .wfh-summary-item > span small{display:block!important;margin-top:2px!important;color:var(--text3)!important;font-weight:700!important;white-space:nowrap!important}
+      .wfh-summary-item strong{line-height:1.25!important}
+      .checks-friday-panel .friday-panel-row{display:grid!important;grid-template-columns:minmax(150px,190px) 1fr!important;align-items:stretch!important}
+      .checks-friday-panel .friday-panel-time{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;text-align:right!important;gap:3px!important;min-width:0!important;flex-basis:auto!important;white-space:normal!important;font-family:'Segoe UI',system-ui,sans-serif!important}
+      .checks-friday-panel .friday-panel-time strong{font-weight:800!important;font-size:.84em!important;line-height:1.2!important}
+      .checks-friday-panel .friday-panel-time small{font-size:.72em!important;color:var(--text3)!important;direction:rtl!important;unicode-bidi:normal!important;white-space:nowrap!important}
+      .checks-friday-panel .friday-panel-cell{min-width:0!important;overflow:hidden!important}
+      .check-empty-note{font-family:'Segoe UI',system-ui,sans-serif!important;text-align:center!important;display:flex!important;align-items:center!important;justify-content:center!important;min-height:28px!important;color:var(--text3)!important;font-size:.8em!important}
+      .friday-sb-cell{background:#fdf4ff!important;border:1.8px solid #f0abfc!important;color:#86198f!important;box-shadow:0 1px 5px rgba(192,38,211,.10)!important}
+      .friday-sb-cell .cell-wfh{background:#fae8ff!important;color:#86198f!important}
+      .friday-sb-label{font-family:'Segoe UI',system-ui,sans-serif!important;background:#fdf4ff!important;color:#86198f!important;font-weight:900!important}
+      .badge-sb-friday{background:#fdf4ff!important;color:#86198f!important;border:1px solid #f0abfc!important}
+      .constraint-absence-card .btn{pointer-events:auto!important}
+    `; document.head.appendChild(s);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',injectStyleV1426); else injectStyleV1426();
+
+  // Data hygiene for employees.
+  function repairEmployeesV1426(){
+    if(!Array.isArray(employees)) return;
+    employees.forEach((e,i)=>{
+      e.id=e.id||Date.now()+i;
+      e.employeeNumber=e.employeeNumber||(i+1);
+      e.name=e.name||'';
+      e.isManager=!!e.isManager; e.isSenior=!!e.isSenior; e.canWFH=!!e.canWFH; e.isNewEmployee=!!e.isNewEmployee;
+      e.weekendOnCall=!!e.weekendOnCall; e.fixedFriday=!!e.fixedFriday; e.wantsFriday=!!e.wantsFriday; e.avoidFriday=!!e.avoidFriday;
+      e.fridaySB=!!e.fridaySB;
+      e.checkPermissions=e.checkPermissions||{}; e.fridayHistory=e.fridayHistory||[]; e.color=e.color||EMP_COLORS[i%EMP_COLORS.length];
+      e.accessCode=e.accessCode||generateAccessCode();
+    });
+  }
+  const _normalizeEmployeeV1426=window.normalizeEmployee;
+  if(typeof _normalizeEmployeeV1426==='function'){
+    window.normalizeEmployee=function(emp,i){ const e=_normalizeEmployeeV1426(emp,i); e.fridaySB=!!emp.fridaySB; return e; };
+  }
+
+  // Add SB Friday supporter toggle to add/edit employee UI without rebuilding the whole page.
+  function injectFridaySBFields(){
+    const addAnchor=document.getElementById('e-avoid-friday')?.closest('.toggle-row');
+    if(addAnchor && !document.getElementById('e-friday-sb')){
+      addAnchor.insertAdjacentHTML('afterend',`<div class="toggle-row" style="margin:0;background:#fdf4ff;border-color:#f0abfc"><label for="e-friday-sb">🛟 תומך SB ליום שישי</label><label class="toggle"><input type="checkbox" id="e-friday-sb"><span class="toggle-slider"></span></label></div>`);
+    }
+    const editAnchor=document.getElementById('me-avoid-friday')?.closest('.toggle-row');
+    if(editAnchor && !document.getElementById('me-friday-sb')){
+      editAnchor.insertAdjacentHTML('afterend',`<div class="toggle-row" style="background:#fdf4ff;border-color:#f0abfc"><label>🛟 תומך SB ליום שישי</label><label class="toggle"><input type="checkbox" id="me-friday-sb"><span class="toggle-slider"></span></label></div>`);
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',injectFridaySBFields); else injectFridaySBFields();
+
+  const _addEmployeeV1426=window.addEmployee;
+  if(typeof _addEmployeeV1426==='function'){
+    window.addEmployee=function(){
+      const nameBefore=document.getElementById('e-name')?.value?.trim();
+      const sb=!!document.getElementById('e-friday-sb')?.checked;
+      const beforeIds=new Set((employees||[]).map(e=>e.id));
+      const res=_addEmployeeV1426.apply(this,arguments);
+      const added=(employees||[]).filter(e=>!beforeIds.has(e.id)).sort((a,b)=>b.id-a.id)[0] || (employees||[]).find(e=>e.name===nameBefore);
+      if(added){added.fridaySB=sb; saveData(); renderEmployees(); renderFridayTable?.();}
+      const cb=document.getElementById('e-friday-sb'); if(cb) cb.checked=false;
+      return res;
+    };
+  }
+  const _openEditEmployeeV1426=window.openEditEmployee;
+  if(typeof _openEditEmployeeV1426==='function'){
+    window.openEditEmployee=function(id){ const res=_openEditEmployeeV1426.apply(this,arguments); injectFridaySBFields(); const emp=employees.find(e=>e.id===id); const cb=document.getElementById('me-friday-sb'); if(cb&&emp) cb.checked=!!emp.fridaySB; return res; };
+  }
+  const _saveEmployeeEditV1426=window.saveEmployeeEdit;
+  if(typeof _saveEmployeeEditV1426==='function'){
+    window.saveEmployeeEdit=function(){ const sb=!!document.getElementById('me-friday-sb')?.checked; const id=editingEmpId; const res=_saveEmployeeEditV1426.apply(this,arguments); const emp=employees.find(e=>e.id===id); if(emp){emp.fridaySB=sb; saveData(); renderEmployees(); renderFridayTable?.(); if(currentSchedule){renderSchedule(true); renderHome?.();}} return res; };
+  }
+  const _renderEmployeesV1426=window.renderEmployees;
+  if(typeof _renderEmployeesV1426==='function'){
+    window.renderEmployees=function(){ repairEmployeesV1426(); const res=_renderEmployeesV1426.apply(this,arguments); injectFridaySBFields(); setTimeout(()=>{
+      const items=document.querySelectorAll('#emp-list .emp-item'); items.forEach((item,i)=>{ const emp=employees[i]; if(emp?.fridaySB){ const badges=item.querySelector('.emp-badges'); if(badges&&!badges.querySelector('.badge-sb-friday')) badges.insertAdjacentHTML('beforeend','<span class="badge badge-sb-friday">🛟 SB שישי</span>'); }});
+    },0); return res; };
+  }
+
+  // Context menu: make "mark WFH" operate on the selected assignment too, not only on employee permission.
+  window.showCtx=function(event,empId,shiftStart,dayOfWeek,weekIdx){
+    event.preventDefault(); event.stopPropagation();
+    const emp=employees.find(e=>e.id===empId);
+    const menu=document.getElementById('ctx-menu');
+    menu.innerHTML=`<div class="ctx-header">${esc(emp?.name||'')}</div>
+      <div class="ctx-item" onclick="closeCtxMenu();openSwapModal(${empId},'${shiftStart}',${dayOfWeek},${weekIdx})">🔄 החלף עם עובד אחר</div>
+      <div class="ctx-item" onclick="closeCtxMenu();toggleWFH(${empId},'${shiftStart}',${dayOfWeek},${weekIdx})">🏠 הפעל/כבה ע.מהבית לעובד</div>
+      <div class="ctx-item" onclick="closeCtxMenu();setShiftWFHStatus('${shiftStart}',${dayOfWeek},${weekIdx},true)">🏠 הפוך את המשמרת לע.מהבית</div>
+      <div class="ctx-item" onclick="closeCtxMenu();setShiftWFHStatus('${shiftStart}',${dayOfWeek},${weekIdx},false)">🏢 הפוך את המשמרת למשרד</div>
+      <div class="ctx-divider"></div>
+      <div class="ctx-item" onclick="closeCtxMenu();setEmployeeWFHFlag(${empId},true,'${shiftStart}',${dayOfWeek},${weekIdx})">✅ סמן עובד ומשמרת כע.מהבית</div>
+      <div class="ctx-item" onclick="closeCtxMenu();setEmployeeWFHFlag(${empId},false)">🚫 בטל ע.מהבית לעובד בכל השיבוץ</div>
+      <div class="ctx-divider"></div>
+      <div class="ctx-item" onclick="closeCtxMenu();openEditEmployee(${empId})">✏️ ערוך פרטי עובד</div>
+      <div class="ctx-item" onclick="closeCtxMenu();markEmployeeAbsence(${empId})">🏖️ סמן חופש / מחלה / מילואים</div>
+      <div class="ctx-divider"></div>
+      <div class="ctx-item" onclick="closeCtxMenu();removeFromShift(${empId},'${shiftStart}',${dayOfWeek},${weekIdx})">❌ הסר ממשמרת זו</div>
+      <div class="ctx-item danger" onclick="closeCtxMenu();removeFromAllShiftsThisWeek(${empId},${weekIdx})">🗑️ הסר מכל המשמרות השבוע</div>`;
+    placeCtxMenu(event,menu);
+  };
+  function applyAssignmentWFH(empId,shiftStart,dayOfWeek,weekIdx,value){
+    const wg=currentSchedule?.weekGroups?.[weekIdx]; const day=wg?.days.find(d=>d.dayOfWeek===dayOfWeek); const sa=day?.shiftAssignments.find(s=>s.start===shiftStart); const a=sa?.employees.find(x=>x.employeeId===empId);
+    if(!a) return false;
+    if(value){ a.isWFH=true; delete a.wfhOverride; }
+    else { a.isWFH=false; a.wfhOverride=false; }
+    return true;
+  }
+  window.setEmployeeWFHFlag=function(empId,value,shiftStart=null,dayOfWeek=null,weekIdx=null){
+    const emp=employees.find(e=>e.id===empId); if(!emp)return;
+    if(value){
+      if(emp.isNewEmployee){toast(`${emp.name} עובד חדש — לא ניתן לסמן לעבודה מהבית`,'error');return;}
+      emp.canWFH=true;
+      if(shiftStart!=null){
+        const errs=validateEmployeeForSlot(empId,shiftStart,dayOfWeek,currentSchedule?.weekGroups?.[weekIdx]?.days?.find(d=>d.dayOfWeek===dayOfWeek)?.dateStr,true).filter(e=>!/ללא הרשאת ע\.מהבית/.test(e));
+        if(errs.length){toast('❌ '+errs[0],'error');return;}
+        applyAssignmentWFH(empId,shiftStart,dayOfWeek,weekIdx,true);
+      }
+      toast(shiftStart!=null?`✅ ${emp.name} סומן כע.מהבית במשמרת זו`:`✅ ${emp.name} סומן כמורשה ע.מהבית`);
+    }else{
+      emp.canWFH=false;
+      (currentSchedule?.weekGroups||[]).forEach((wg,wi)=>wg.days.forEach(day=>day.shiftAssignments.forEach(sa=>sa.employees.forEach(a=>{if(a.employeeId===empId){a.isWFH=false;a.wfhOverride=false;}}))));
+      toast(`🚫 ע.מהבית בוטל ל-${emp.name} בכל השיבוץ הנוכחי`);
+    }
+    saveData(); if(currentSchedule){renderSchedule(true); renderHome?.();} renderEmployees(); renderHeaderStats?.();
+  };
+
+  // Restore Friday checks while keeping the main Sun–Thu checks aligned with the schedule table.
+  function isRoomsV1426(chk){return /חדרי|ישיבות/.test(String(chk.name||'')) || String(chk.id||'').includes('rooms');}
+  function isOpeningV1426(chk){return !!chk.isOpening || /פתיחה|כלליות/.test(String(chk.name||'')) || String(chk.id||'').includes('morning');}
+  function checkPoolV1426(day,chk){
+    const arriving=getEmployeesArrivingAt(day,chk.time)||[];
+    let pool=arriving.map(a=>getEmpById(a.employeeId)).filter(Boolean).filter(e=>!e.isManager&&!e.isSenior);
+    if(chk.needsPerm){const auth=pool.filter(e=>e.checkPermissions&&e.checkPermissions[chk.id]); if(auth.length) pool=auth;}
+    return pool;
+  }
+  function pickFairV1426(pool,count,load){return [...pool].sort((a,b)=>((load[a.id]||0)-(load[b.id]||0))||((a.employeeNumber||999)-(b.employeeNumber||999))||String(a.name).localeCompare(String(b.name),'he')).slice(0,Math.max(1,count||1));}
+  function checkChipV1426(emp,chk,dayKey,wi){const color=emp.color||'#4f63d2';return `<div class="check-emp-chip" onclick="openCheckAssign('${chk.id}','${dayKey}',${wi})" title="לחץ לשינוי שיבוץ"><span class="check-chip-num" style="background:${color}">${emp.employeeNumber}</span><span class="check-chip-name">${esc(emp.name)}</span></div>`;}
+  function renderCheckCellInnerV1426(chk,day,wi,load){
+    if(day.holiday && isShiftBlockedByHoliday(day.holiday, chk.time)) return `<div class="holiday-cell">${esc(day.holiday.name)}</div>`;
+    const key=day.dateStr; const override=(currentSchedule?.weekGroups?.[wi]?.checkOverrides?.[`${chk.id}|${key}`])||null;
+    if(day.dayOfWeek===5 && isRoomsV1426(chk)) return `<div class="check-empty-note">לא נדרש בשישי (ע.מהבית)</div>`;
+    let selected=[];
+    if(override&&override.length) selected=override.map(id=>getEmpById(id)).filter(Boolean);
+    else{
+      const pool=checkPoolV1426(day,chk);
+      if(!pool.length) return `<div class="check-empty-note">— אין תומך רגיל בשעה זו —</div>`;
+      selected=(isOpeningV1426(chk)||isRoomsV1426(chk)) ? pool.slice(0,Math.max(1,chk.count||1)) : pickFairV1426(pool,chk.count||1,load);
+    }
+    if(!isOpeningV1426(chk)&&!isRoomsV1426(chk)) selected.forEach(e=>load[e.id]=(load[e.id]||0)+1);
+    return selected.map(emp=>checkChipV1426(emp,chk,key,wi)).join('');
+  }
+  window.buildChecksTable=function(wg,wi){
+    if(typeof sanitizeChecks==='function') sanitizeChecks(); if(!checks.length) return '';
+    const weekdayDays=(typeof getOrderedWeekdayDays==='function'?getOrderedWeekdayDays(wg.days):(wg.days||[]).filter(d=>d.dayOfWeek>=0&&d.dayOfWeek<=4)).filter(d=>d.dayOfWeek>=0&&d.dayOfWeek<=4);
+    const fridayDay=(wg.days||[]).find(d=>d.dayOfWeek===5);
+    const load={};
+    let main=`<h4 class="checks-title" style="margin:26px 0 12px;color:var(--primary);font-size:1.05em;display:flex;align-items:center;gap:8px;font-family:'Segoe UI',system-ui,sans-serif">✅ בדיקות בוקר לביצוע</h4>`;
+    main+=`<div class="checks-aligned schedule-row-layout"><div class="schedule-wrapper"><table class="schedule-table checks-table"><thead><tr><th class="row-header">בדיקה</th>${weekdayDays.map(d=>`<th>${d.dayName}<br><span style="font-weight:400;font-size:.82em">${fmtDate(d.date)}</span></th>`).join('')}</tr></thead><tbody>`;
+    checks.forEach(chk=>{ main+=`<tr><td class="time-col"><span class="check-title">${chk.icon||'✅'} ${esc(chk.name)}</span><span class="check-subtitle">מגיעים ב-${esc(chk.time||'')}</span></td>${weekdayDays.map(day=>`<td>${renderCheckCellInnerV1426(chk,day,wi,load)}</td>`).join('')}</tr>`; });
+    main+='</tbody></table></div>';
+    let friday='';
+    if(fridayDay){
+      friday=`<div class="friday-panel checks-friday-panel"><div class="friday-panel-header">שישי<br><span style="font-weight:400;font-size:.82em">${fmtDate(fridayDay.date)}</span></div>`;
+      checks.forEach(chk=>{ friday+=`<div class="friday-panel-row"><div class="friday-panel-time"><strong>${chk.icon||'✅'} ${esc(chk.name)}</strong><small>מגיעים ב-${esc(chk.time||'')}</small></div><div class="friday-panel-cell">${renderCheckCellInnerV1426(chk,fridayDay,wi,load)}</div></div>`; });
+      friday+='</div>';
+    }
+    return main+friday+'</div>';
+  };
+
+  // Clean WFH summary spacing.
+  window.buildWfhSummaryTable=function(wg,wi){
+    const m=getWfhSummaryMetrics(wg); if(!m.rows.length) return '';
+    const overRows=m.eligibleRows.filter(r=>r.count>r.limit), completeRows=m.eligibleRows.filter(r=>r.count===r.limit);
+    const visible=[...m.eligibleRows,...m.newRows,...m.ineligibleRows.filter(r=>r.count>0)];
+    const items=visible.map(r=>{
+      let cls='ineligible'; if(r.eligible){ if(r.count>r.limit)cls='over'; else if(r.count===0)cls='zero'; else if(r.count<r.limit)cls='partial'; else cls='complete'; }
+      const role=r.emp.isManager?'אחמ״ש':r.emp.isSenior?(settings.seniorName||'בכיר'):'תומך';
+      const detail=r.days.length?` title="${esc(r.days.join(', '))}"`:'';
+      let main='', sub='';
+      if(r.eligible){ main=`${r.count} / ${r.limit}`; if(r.count<r.limit) sub=`חסר ${r.limit-r.count}`; if(r.count>r.limit) sub=`חריג +${r.count-r.limit}`; }
+      else if(r.isNew){ main='עובד חדש'; sub=`קיבל ${r.count}`; }
+      else { main='לא זכאי'; sub=`קיבל ${r.count}`; }
+      return `<div class="wfh-summary-item ${cls}"${detail}><span><b>#${r.emp.employeeNumber} ${esc(r.emp.name)}</b><small>${role}${r.isNew?' | חדש':''}</small></span><strong><span class="wfh-count-main">${main}</span>${sub?`<span class="wfh-count-sub">${sub}</span>`:''}</strong></div>`;
+    }).join('');
+    const shortText=m.shortRows.length?m.shortRows.map(r=>`${esc(r.emp.name)} (${r.count}/${r.limit})`).join(', '):'אין';
+    const zeroText=m.zeroRows.length?m.zeroRows.map(r=>esc(r.emp.name)).join(', '):'אין';
+    const overText=overRows.length?overRows.map(r=>`${esc(r.emp.name)} (${r.count}/${r.limit})`).join(', '):'אין';
+    return `<div class="wfh-summary-card manager-only-summary" data-manager-only="1"><div class="wfh-summary-title"><span>🏠 סיכום עבודה מהבית א׳–ה׳</span><span class="wfh-summary-note">מיועד להנהלה בלבד ולא ייכלל בתמונת השיבוץ</span></div><div class="wfh-summary-metrics"><span class="wfh-metric-pill primary">קיבלו לפחות פעם אחת: ${m.receivedRows.length}/${m.eligibleRows.length}</span><span class="wfh-metric-pill ${completeRows.length===m.eligibleRows.length?'':'warn'}">קיבלו מכסה מלאה: ${completeRows.length}/${m.eligibleRows.length}</span><span class="wfh-metric-pill">סה״כ ימי בית: ${m.totalDays}/${m.requiredDays}</span><span class="wfh-metric-pill warn">חלקי: ${m.partialRows.length}</span><span class="wfh-metric-pill ${m.zeroRows.length?'bad':''}">0 מתוך מכסה: ${m.zeroRows.length}</span><span class="wfh-metric-pill ${overRows.length?'over':''}">חריגים: ${overRows.length}</span><span class="wfh-metric-pill warn">עובדים חדשים: ${m.newRows.length}</span></div><div class="wfh-deficit-line">חסרי השלמה: ${shortText}</div><div class="wfh-summary-note" style="margin-bottom:8px">לא קיבלו בכלל: ${zeroText} | חריגים: ${overText} | חסרים סה״כ ${m.missingDays} ימי בית</div><div class="wfh-summary-grid">${items}</div></div>`;
+  };
+
+  // Add Friday SB row to the Friday panel in the weekly schedule.
+  function fridaySBEmployees(){ return (employees||[]).filter(e=>e.fridaySB&&!e.isNewEmployee&&!e.avoidFriday); }
+  const _buildScheduleTableV1426=window.buildScheduleTable;
+  if(typeof _buildScheduleTableV1426==='function'){
+    window.buildScheduleTable=function(wg,wi){
+      let html=_buildScheduleTableV1426.apply(this,arguments);
+      const sb=fridaySBEmployees();
+      if(!sb.length || !html.includes('friday-panel')) return html;
+      const sbCells=sb.map(emp=>`<div class="shift-cell friday-sb-cell oncall-mini-cell" title="תומך SB ליום שישי"><div class="cell-num" style="background:${emp.color||'#c026d3'}">${emp.employeeNumber}</div><span class="cell-name">${esc(emp.name)}</span><span class="cell-wfh">🏠</span></div>`).join('');
+      const row=`<div class="friday-panel-row friday-sb-row"><div class="friday-panel-time friday-sb-label"><span>🛟</span><strong>תומך SB</strong></div><div class="friday-panel-cell">${sbCells}</div></div>`;
+      return html.replace(/(<\/div>\s*<\/div>)/, row+'$1');
+    };
+  }
+
+  // Robust absence range card and action button.
+  function injectConstraintAbsenceCardV1426(){
+    const tab=document.getElementById('tab-constraints'); if(!tab) return;
+    let card=document.getElementById('constraint-absence-range-card');
+    if(!card){
+      const anchor=document.getElementById('pending-submissions-card') || tab.querySelector('.card') || tab.firstElementChild;
+      card=document.createElement('div'); card.id='constraint-absence-range-card'; card.className='card constraint-absence-card';
+      card.innerHTML=`<div class="card-title"><span>🏖️</span> היעדרות / חופשה / מחלה מתאריך עד תאריך</div><p style="font-size:.86em;color:var(--text2);margin-bottom:12px">הגדרה זו מונעת מהעובד להיכנס לשיבוצים עתידיים שחופפים לטווח התאריכים.</p><div class="form-row triple"><div class="field"><label>עובד</label><select id="con-abs-emp"></select></div><div class="field"><label>סיבה</label><select id="con-abs-type"><option value="sick">מחלה</option><option value="vacation">חופשה</option><option value="reserve">מילואים</option><option value="absence">היעדרות</option><option value="personal">נסיבות אישיות</option><option value="other">אחר</option></select></div><div class="field"><label>פירוט פנימי קצר, אופציונלי</label><input type="text" id="con-abs-note" placeholder="למנהלים בלבד"></div></div><div class="form-row"><div class="field"><label>מתאריך</label><input type="date" id="con-abs-from"></div><div class="field"><label>עד תאריך</label><input type="date" id="con-abs-to"></div></div><div class="btn-row"><button type="button" class="btn btn-warning" id="con-abs-submit">הוסף היעדרות לטווח</button></div>`;
+      if(anchor) anchor.insertAdjacentElement('afterend',card); else tab.prepend(card);
+    }
+    const sel=document.getElementById('con-abs-emp'); if(sel) sel.innerHTML=(employees||[]).map(e=>`<option value="${e.id}">#${e.employeeNumber} ${esc(e.name)}</option>`).join('');
+    const btn=document.getElementById('con-abs-submit'); if(btn && !btn.dataset.bound){ btn.dataset.bound='1'; btn.addEventListener('click',()=>window.addConstraintAbsenceRange()); }
+  }
+  window.addConstraintAbsenceRange=function(){
+    const sel=document.getElementById('con-abs-emp');
+    const empId=Number(sel?.value); const type=document.getElementById('con-abs-type')?.value||'absence';
+    const from=document.getElementById('con-abs-from')?.value; const to=document.getElementById('con-abs-to')?.value||from; const note=document.getElementById('con-abs-note')?.value||'';
+    const emp=(employees||[]).find(e=>Number(e.id)===empId);
+    if(!emp){toast('בחר עובד','error');return;}
+    if(!from){toast('בחר תאריך התחלה','error');return;}
+    absences=Array.isArray(absences)?absences:[];
+    absences.push({id:Date.now()+Math.random(),employeeId:emp.id,type,from,to,note});
+    if(typeof addAuditEvent==='function') addAuditEvent('absence',{employeeId:emp.id,employeeName:emp.name,dateStr:from,specificDate:from,shiftStart:'טווח תאריכים',status:'נרשם',note:(note||type)+(to&&to!==from?' עד '+to:'')});
+    saveData();
+    document.getElementById('con-abs-from').value=''; document.getElementById('con-abs-to').value=''; document.getElementById('con-abs-note').value='';
+    renderConstraints?.(); renderAttendance?.(); renderCoverage?.(); if(currentSchedule){renderSchedule(true); renderHome?.();}
+    toast(`✅ היעדרות נשמרה עבור ${emp.name}`);
+  };
+  const _renderConstraintsV1426=window.renderConstraints;
+  if(typeof _renderConstraintsV1426==='function') window.renderConstraints=function(){const r=_renderConstraintsV1426.apply(this,arguments); injectConstraintAbsenceCardV1426(); return r;};
+  const _updateConstraintDropdownsV1426=window.updateConstraintDropdowns;
+  if(typeof _updateConstraintDropdownsV1426==='function') window.updateConstraintDropdowns=function(){const r=_updateConstraintDropdownsV1426.apply(this,arguments); injectConstraintAbsenceCardV1426(); return r;};
+
+  setTimeout(()=>{try{setVersionV1426(); injectStyleV1426(); repairEmployeesV1426(); injectFridaySBFields(); injectConstraintAbsenceCardV1426(); if(currentSchedule){renderSchedule(true); renderHome?.();} renderEmployees?.(); renderFridayTable?.(); renderConstraints?.(); renderChecks?.();}catch(e){console.warn('v1.42.6 refresh skipped',e);}},160);
+})();
+
 </script>
 
 
@@ -6580,6 +6839,265 @@ body.sf-exporting .shift-time-text,.coverage-time-range{unicode-bidi:embed;direc
   window.updateConstraintDropdowns=function(){ const out=_updateConstraintDropdowns1425.apply(this,arguments); populateConstraintAbsenceEmployees(); return out; };
 
   setTimeout(()=>{try{bumpVersion(); sanitizeChecks(); injectConstraintAbsenceCard(); populateConstraintAbsenceEmployees(); if(currentSchedule){renderSchedule(true); renderHome?.();} renderEmployees?.(); renderChecks?.(); renderConstraints?.();}catch(e){console.warn('v1.42.5 refresh skipped',e);}},120);
+})();
+
+
+// ============================================================
+// V1.42.6 PATCH — Friday checks restored, WFH toggle stability, SB Friday supporter, absence fix
+// ============================================================
+(function(){
+  const VERSION='1.42.6';
+  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  function setVersionV1426(){
+    document.querySelectorAll('#login-version-label').forEach(el=>el.textContent=VERSION);
+    const vf=document.getElementById('version-footer'); if(vf) vf.textContent='גרסה '+VERSION;
+    const af=document.getElementById('app-footer-version'); if(af) af.textContent=VERSION;
+    const al=document.getElementById('app-version-label'); if(al) al.textContent='גרסה '+VERSION;
+    document.title='מערכת לניהול משמרות';
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',setVersionV1426); else setVersionV1426();
+
+  function injectStyleV1426(){
+    if(document.getElementById('style-v1426')) return;
+    const s=document.createElement('style'); s.id='style-v1426'; s.textContent=`
+      .wfh-summary-card,.wfh-summary-card *{font-family:'Segoe UI',system-ui,sans-serif!important;letter-spacing:0!important}
+      .wfh-summary-item > span{display:flex!important;flex-direction:column!important;gap:3px!important;min-width:0!important;line-height:1.25!important}
+      .wfh-summary-item > span small{display:block!important;margin-top:2px!important;color:var(--text3)!important;font-weight:700!important;white-space:nowrap!important}
+      .wfh-summary-item strong{line-height:1.25!important}
+      .checks-friday-panel .friday-panel-row{display:grid!important;grid-template-columns:minmax(150px,190px) 1fr!important;align-items:stretch!important}
+      .checks-friday-panel .friday-panel-time{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;text-align:right!important;gap:3px!important;min-width:0!important;flex-basis:auto!important;white-space:normal!important;font-family:'Segoe UI',system-ui,sans-serif!important}
+      .checks-friday-panel .friday-panel-time strong{font-weight:800!important;font-size:.84em!important;line-height:1.2!important}
+      .checks-friday-panel .friday-panel-time small{font-size:.72em!important;color:var(--text3)!important;direction:rtl!important;unicode-bidi:normal!important;white-space:nowrap!important}
+      .checks-friday-panel .friday-panel-cell{min-width:0!important;overflow:hidden!important}
+      .check-empty-note{font-family:'Segoe UI',system-ui,sans-serif!important;text-align:center!important;display:flex!important;align-items:center!important;justify-content:center!important;min-height:28px!important;color:var(--text3)!important;font-size:.8em!important}
+      .friday-sb-cell{background:#fdf4ff!important;border:1.8px solid #f0abfc!important;color:#86198f!important;box-shadow:0 1px 5px rgba(192,38,211,.10)!important}
+      .friday-sb-cell .cell-wfh{background:#fae8ff!important;color:#86198f!important}
+      .friday-sb-label{font-family:'Segoe UI',system-ui,sans-serif!important;background:#fdf4ff!important;color:#86198f!important;font-weight:900!important}
+      .badge-sb-friday{background:#fdf4ff!important;color:#86198f!important;border:1px solid #f0abfc!important}
+      .constraint-absence-card .btn{pointer-events:auto!important}
+    `; document.head.appendChild(s);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',injectStyleV1426); else injectStyleV1426();
+
+  // Data hygiene for employees.
+  function repairEmployeesV1426(){
+    if(!Array.isArray(employees)) return;
+    employees.forEach((e,i)=>{
+      e.id=e.id||Date.now()+i;
+      e.employeeNumber=e.employeeNumber||(i+1);
+      e.name=e.name||'';
+      e.isManager=!!e.isManager; e.isSenior=!!e.isSenior; e.canWFH=!!e.canWFH; e.isNewEmployee=!!e.isNewEmployee;
+      e.weekendOnCall=!!e.weekendOnCall; e.fixedFriday=!!e.fixedFriday; e.wantsFriday=!!e.wantsFriday; e.avoidFriday=!!e.avoidFriday;
+      e.fridaySB=!!e.fridaySB;
+      e.checkPermissions=e.checkPermissions||{}; e.fridayHistory=e.fridayHistory||[]; e.color=e.color||EMP_COLORS[i%EMP_COLORS.length];
+      e.accessCode=e.accessCode||generateAccessCode();
+    });
+  }
+  const _normalizeEmployeeV1426=window.normalizeEmployee;
+  if(typeof _normalizeEmployeeV1426==='function'){
+    window.normalizeEmployee=function(emp,i){ const e=_normalizeEmployeeV1426(emp,i); e.fridaySB=!!emp.fridaySB; return e; };
+  }
+
+  // Add SB Friday supporter toggle to add/edit employee UI without rebuilding the whole page.
+  function injectFridaySBFields(){
+    const addAnchor=document.getElementById('e-avoid-friday')?.closest('.toggle-row');
+    if(addAnchor && !document.getElementById('e-friday-sb')){
+      addAnchor.insertAdjacentHTML('afterend',`<div class="toggle-row" style="margin:0;background:#fdf4ff;border-color:#f0abfc"><label for="e-friday-sb">🛟 תומך SB ליום שישי</label><label class="toggle"><input type="checkbox" id="e-friday-sb"><span class="toggle-slider"></span></label></div>`);
+    }
+    const editAnchor=document.getElementById('me-avoid-friday')?.closest('.toggle-row');
+    if(editAnchor && !document.getElementById('me-friday-sb')){
+      editAnchor.insertAdjacentHTML('afterend',`<div class="toggle-row" style="background:#fdf4ff;border-color:#f0abfc"><label>🛟 תומך SB ליום שישי</label><label class="toggle"><input type="checkbox" id="me-friday-sb"><span class="toggle-slider"></span></label></div>`);
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',injectFridaySBFields); else injectFridaySBFields();
+
+  const _addEmployeeV1426=window.addEmployee;
+  if(typeof _addEmployeeV1426==='function'){
+    window.addEmployee=function(){
+      const nameBefore=document.getElementById('e-name')?.value?.trim();
+      const sb=!!document.getElementById('e-friday-sb')?.checked;
+      const beforeIds=new Set((employees||[]).map(e=>e.id));
+      const res=_addEmployeeV1426.apply(this,arguments);
+      const added=(employees||[]).filter(e=>!beforeIds.has(e.id)).sort((a,b)=>b.id-a.id)[0] || (employees||[]).find(e=>e.name===nameBefore);
+      if(added){added.fridaySB=sb; saveData(); renderEmployees(); renderFridayTable?.();}
+      const cb=document.getElementById('e-friday-sb'); if(cb) cb.checked=false;
+      return res;
+    };
+  }
+  const _openEditEmployeeV1426=window.openEditEmployee;
+  if(typeof _openEditEmployeeV1426==='function'){
+    window.openEditEmployee=function(id){ const res=_openEditEmployeeV1426.apply(this,arguments); injectFridaySBFields(); const emp=employees.find(e=>e.id===id); const cb=document.getElementById('me-friday-sb'); if(cb&&emp) cb.checked=!!emp.fridaySB; return res; };
+  }
+  const _saveEmployeeEditV1426=window.saveEmployeeEdit;
+  if(typeof _saveEmployeeEditV1426==='function'){
+    window.saveEmployeeEdit=function(){ const sb=!!document.getElementById('me-friday-sb')?.checked; const id=editingEmpId; const res=_saveEmployeeEditV1426.apply(this,arguments); const emp=employees.find(e=>e.id===id); if(emp){emp.fridaySB=sb; saveData(); renderEmployees(); renderFridayTable?.(); if(currentSchedule){renderSchedule(true); renderHome?.();}} return res; };
+  }
+  const _renderEmployeesV1426=window.renderEmployees;
+  if(typeof _renderEmployeesV1426==='function'){
+    window.renderEmployees=function(){ repairEmployeesV1426(); const res=_renderEmployeesV1426.apply(this,arguments); injectFridaySBFields(); setTimeout(()=>{
+      const items=document.querySelectorAll('#emp-list .emp-item'); items.forEach((item,i)=>{ const emp=employees[i]; if(emp?.fridaySB){ const badges=item.querySelector('.emp-badges'); if(badges&&!badges.querySelector('.badge-sb-friday')) badges.insertAdjacentHTML('beforeend','<span class="badge badge-sb-friday">🛟 SB שישי</span>'); }});
+    },0); return res; };
+  }
+
+  // Context menu: make "mark WFH" operate on the selected assignment too, not only on employee permission.
+  window.showCtx=function(event,empId,shiftStart,dayOfWeek,weekIdx){
+    event.preventDefault(); event.stopPropagation();
+    const emp=employees.find(e=>e.id===empId);
+    const menu=document.getElementById('ctx-menu');
+    menu.innerHTML=`<div class="ctx-header">${esc(emp?.name||'')}</div>
+      <div class="ctx-item" onclick="closeCtxMenu();openSwapModal(${empId},'${shiftStart}',${dayOfWeek},${weekIdx})">🔄 החלף עם עובד אחר</div>
+      <div class="ctx-item" onclick="closeCtxMenu();toggleWFH(${empId},'${shiftStart}',${dayOfWeek},${weekIdx})">🏠 הפעל/כבה ע.מהבית לעובד</div>
+      <div class="ctx-item" onclick="closeCtxMenu();setShiftWFHStatus('${shiftStart}',${dayOfWeek},${weekIdx},true)">🏠 הפוך את המשמרת לע.מהבית</div>
+      <div class="ctx-item" onclick="closeCtxMenu();setShiftWFHStatus('${shiftStart}',${dayOfWeek},${weekIdx},false)">🏢 הפוך את המשמרת למשרד</div>
+      <div class="ctx-divider"></div>
+      <div class="ctx-item" onclick="closeCtxMenu();setEmployeeWFHFlag(${empId},true,'${shiftStart}',${dayOfWeek},${weekIdx})">✅ סמן עובד ומשמרת כע.מהבית</div>
+      <div class="ctx-item" onclick="closeCtxMenu();setEmployeeWFHFlag(${empId},false)">🚫 בטל ע.מהבית לעובד בכל השיבוץ</div>
+      <div class="ctx-divider"></div>
+      <div class="ctx-item" onclick="closeCtxMenu();openEditEmployee(${empId})">✏️ ערוך פרטי עובד</div>
+      <div class="ctx-item" onclick="closeCtxMenu();markEmployeeAbsence(${empId})">🏖️ סמן חופש / מחלה / מילואים</div>
+      <div class="ctx-divider"></div>
+      <div class="ctx-item" onclick="closeCtxMenu();removeFromShift(${empId},'${shiftStart}',${dayOfWeek},${weekIdx})">❌ הסר ממשמרת זו</div>
+      <div class="ctx-item danger" onclick="closeCtxMenu();removeFromAllShiftsThisWeek(${empId},${weekIdx})">🗑️ הסר מכל המשמרות השבוע</div>`;
+    placeCtxMenu(event,menu);
+  };
+  function applyAssignmentWFH(empId,shiftStart,dayOfWeek,weekIdx,value){
+    const wg=currentSchedule?.weekGroups?.[weekIdx]; const day=wg?.days.find(d=>d.dayOfWeek===dayOfWeek); const sa=day?.shiftAssignments.find(s=>s.start===shiftStart); const a=sa?.employees.find(x=>x.employeeId===empId);
+    if(!a) return false;
+    if(value){ a.isWFH=true; delete a.wfhOverride; }
+    else { a.isWFH=false; a.wfhOverride=false; }
+    return true;
+  }
+  window.setEmployeeWFHFlag=function(empId,value,shiftStart=null,dayOfWeek=null,weekIdx=null){
+    const emp=employees.find(e=>e.id===empId); if(!emp)return;
+    if(value){
+      if(emp.isNewEmployee){toast(`${emp.name} עובד חדש — לא ניתן לסמן לעבודה מהבית`,'error');return;}
+      emp.canWFH=true;
+      if(shiftStart!=null){
+        const errs=validateEmployeeForSlot(empId,shiftStart,dayOfWeek,currentSchedule?.weekGroups?.[weekIdx]?.days?.find(d=>d.dayOfWeek===dayOfWeek)?.dateStr,true).filter(e=>!/ללא הרשאת ע\.מהבית/.test(e));
+        if(errs.length){toast('❌ '+errs[0],'error');return;}
+        applyAssignmentWFH(empId,shiftStart,dayOfWeek,weekIdx,true);
+      }
+      toast(shiftStart!=null?`✅ ${emp.name} סומן כע.מהבית במשמרת זו`:`✅ ${emp.name} סומן כמורשה ע.מהבית`);
+    }else{
+      emp.canWFH=false;
+      (currentSchedule?.weekGroups||[]).forEach((wg,wi)=>wg.days.forEach(day=>day.shiftAssignments.forEach(sa=>sa.employees.forEach(a=>{if(a.employeeId===empId){a.isWFH=false;a.wfhOverride=false;}}))));
+      toast(`🚫 ע.מהבית בוטל ל-${emp.name} בכל השיבוץ הנוכחי`);
+    }
+    saveData(); if(currentSchedule){renderSchedule(true); renderHome?.();} renderEmployees(); renderHeaderStats?.();
+  };
+
+  // Restore Friday checks while keeping the main Sun–Thu checks aligned with the schedule table.
+  function isRoomsV1426(chk){return /חדרי|ישיבות/.test(String(chk.name||'')) || String(chk.id||'').includes('rooms');}
+  function isOpeningV1426(chk){return !!chk.isOpening || /פתיחה|כלליות/.test(String(chk.name||'')) || String(chk.id||'').includes('morning');}
+  function checkPoolV1426(day,chk){
+    const arriving=getEmployeesArrivingAt(day,chk.time)||[];
+    let pool=arriving.map(a=>getEmpById(a.employeeId)).filter(Boolean).filter(e=>!e.isManager&&!e.isSenior);
+    if(chk.needsPerm){const auth=pool.filter(e=>e.checkPermissions&&e.checkPermissions[chk.id]); if(auth.length) pool=auth;}
+    return pool;
+  }
+  function pickFairV1426(pool,count,load){return [...pool].sort((a,b)=>((load[a.id]||0)-(load[b.id]||0))||((a.employeeNumber||999)-(b.employeeNumber||999))||String(a.name).localeCompare(String(b.name),'he')).slice(0,Math.max(1,count||1));}
+  function checkChipV1426(emp,chk,dayKey,wi){const color=emp.color||'#4f63d2';return `<div class="check-emp-chip" onclick="openCheckAssign('${chk.id}','${dayKey}',${wi})" title="לחץ לשינוי שיבוץ"><span class="check-chip-num" style="background:${color}">${emp.employeeNumber}</span><span class="check-chip-name">${esc(emp.name)}</span></div>`;}
+  function renderCheckCellInnerV1426(chk,day,wi,load){
+    if(day.holiday && isShiftBlockedByHoliday(day.holiday, chk.time)) return `<div class="holiday-cell">${esc(day.holiday.name)}</div>`;
+    const key=day.dateStr; const override=(currentSchedule?.weekGroups?.[wi]?.checkOverrides?.[`${chk.id}|${key}`])||null;
+    if(day.dayOfWeek===5 && isRoomsV1426(chk)) return `<div class="check-empty-note">לא נדרש בשישי (ע.מהבית)</div>`;
+    let selected=[];
+    if(override&&override.length) selected=override.map(id=>getEmpById(id)).filter(Boolean);
+    else{
+      const pool=checkPoolV1426(day,chk);
+      if(!pool.length) return `<div class="check-empty-note">— אין תומך רגיל בשעה זו —</div>`;
+      selected=(isOpeningV1426(chk)||isRoomsV1426(chk)) ? pool.slice(0,Math.max(1,chk.count||1)) : pickFairV1426(pool,chk.count||1,load);
+    }
+    if(!isOpeningV1426(chk)&&!isRoomsV1426(chk)) selected.forEach(e=>load[e.id]=(load[e.id]||0)+1);
+    return selected.map(emp=>checkChipV1426(emp,chk,key,wi)).join('');
+  }
+  window.buildChecksTable=function(wg,wi){
+    if(typeof sanitizeChecks==='function') sanitizeChecks(); if(!checks.length) return '';
+    const weekdayDays=(typeof getOrderedWeekdayDays==='function'?getOrderedWeekdayDays(wg.days):(wg.days||[]).filter(d=>d.dayOfWeek>=0&&d.dayOfWeek<=4)).filter(d=>d.dayOfWeek>=0&&d.dayOfWeek<=4);
+    const fridayDay=(wg.days||[]).find(d=>d.dayOfWeek===5);
+    const load={};
+    let main=`<h4 class="checks-title" style="margin:26px 0 12px;color:var(--primary);font-size:1.05em;display:flex;align-items:center;gap:8px;font-family:'Segoe UI',system-ui,sans-serif">✅ בדיקות בוקר לביצוע</h4>`;
+    main+=`<div class="checks-aligned schedule-row-layout"><div class="schedule-wrapper"><table class="schedule-table checks-table"><thead><tr><th class="row-header">בדיקה</th>${weekdayDays.map(d=>`<th>${d.dayName}<br><span style="font-weight:400;font-size:.82em">${fmtDate(d.date)}</span></th>`).join('')}</tr></thead><tbody>`;
+    checks.forEach(chk=>{ main+=`<tr><td class="time-col"><span class="check-title">${chk.icon||'✅'} ${esc(chk.name)}</span><span class="check-subtitle">מגיעים ב-${esc(chk.time||'')}</span></td>${weekdayDays.map(day=>`<td>${renderCheckCellInnerV1426(chk,day,wi,load)}</td>`).join('')}</tr>`; });
+    main+='</tbody></table></div>';
+    let friday='';
+    if(fridayDay){
+      friday=`<div class="friday-panel checks-friday-panel"><div class="friday-panel-header">שישי<br><span style="font-weight:400;font-size:.82em">${fmtDate(fridayDay.date)}</span></div>`;
+      checks.forEach(chk=>{ friday+=`<div class="friday-panel-row"><div class="friday-panel-time"><strong>${chk.icon||'✅'} ${esc(chk.name)}</strong><small>מגיעים ב-${esc(chk.time||'')}</small></div><div class="friday-panel-cell">${renderCheckCellInnerV1426(chk,fridayDay,wi,load)}</div></div>`; });
+      friday+='</div>';
+    }
+    return main+friday+'</div>';
+  };
+
+  // Clean WFH summary spacing.
+  window.buildWfhSummaryTable=function(wg,wi){
+    const m=getWfhSummaryMetrics(wg); if(!m.rows.length) return '';
+    const overRows=m.eligibleRows.filter(r=>r.count>r.limit), completeRows=m.eligibleRows.filter(r=>r.count===r.limit);
+    const visible=[...m.eligibleRows,...m.newRows,...m.ineligibleRows.filter(r=>r.count>0)];
+    const items=visible.map(r=>{
+      let cls='ineligible'; if(r.eligible){ if(r.count>r.limit)cls='over'; else if(r.count===0)cls='zero'; else if(r.count<r.limit)cls='partial'; else cls='complete'; }
+      const role=r.emp.isManager?'אחמ״ש':r.emp.isSenior?(settings.seniorName||'בכיר'):'תומך';
+      const detail=r.days.length?` title="${esc(r.days.join(', '))}"`:'';
+      let main='', sub='';
+      if(r.eligible){ main=`${r.count} / ${r.limit}`; if(r.count<r.limit) sub=`חסר ${r.limit-r.count}`; if(r.count>r.limit) sub=`חריג +${r.count-r.limit}`; }
+      else if(r.isNew){ main='עובד חדש'; sub=`קיבל ${r.count}`; }
+      else { main='לא זכאי'; sub=`קיבל ${r.count}`; }
+      return `<div class="wfh-summary-item ${cls}"${detail}><span><b>#${r.emp.employeeNumber} ${esc(r.emp.name)}</b><small>${role}${r.isNew?' | חדש':''}</small></span><strong><span class="wfh-count-main">${main}</span>${sub?`<span class="wfh-count-sub">${sub}</span>`:''}</strong></div>`;
+    }).join('');
+    const shortText=m.shortRows.length?m.shortRows.map(r=>`${esc(r.emp.name)} (${r.count}/${r.limit})`).join(', '):'אין';
+    const zeroText=m.zeroRows.length?m.zeroRows.map(r=>esc(r.emp.name)).join(', '):'אין';
+    const overText=overRows.length?overRows.map(r=>`${esc(r.emp.name)} (${r.count}/${r.limit})`).join(', '):'אין';
+    return `<div class="wfh-summary-card manager-only-summary" data-manager-only="1"><div class="wfh-summary-title"><span>🏠 סיכום עבודה מהבית א׳–ה׳</span><span class="wfh-summary-note">מיועד להנהלה בלבד ולא ייכלל בתמונת השיבוץ</span></div><div class="wfh-summary-metrics"><span class="wfh-metric-pill primary">קיבלו לפחות פעם אחת: ${m.receivedRows.length}/${m.eligibleRows.length}</span><span class="wfh-metric-pill ${completeRows.length===m.eligibleRows.length?'':'warn'}">קיבלו מכסה מלאה: ${completeRows.length}/${m.eligibleRows.length}</span><span class="wfh-metric-pill">סה״כ ימי בית: ${m.totalDays}/${m.requiredDays}</span><span class="wfh-metric-pill warn">חלקי: ${m.partialRows.length}</span><span class="wfh-metric-pill ${m.zeroRows.length?'bad':''}">0 מתוך מכסה: ${m.zeroRows.length}</span><span class="wfh-metric-pill ${overRows.length?'over':''}">חריגים: ${overRows.length}</span><span class="wfh-metric-pill warn">עובדים חדשים: ${m.newRows.length}</span></div><div class="wfh-deficit-line">חסרי השלמה: ${shortText}</div><div class="wfh-summary-note" style="margin-bottom:8px">לא קיבלו בכלל: ${zeroText} | חריגים: ${overText} | חסרים סה״כ ${m.missingDays} ימי בית</div><div class="wfh-summary-grid">${items}</div></div>`;
+  };
+
+  // Add Friday SB row to the Friday panel in the weekly schedule.
+  function fridaySBEmployees(){ return (employees||[]).filter(e=>e.fridaySB&&!e.isNewEmployee&&!e.avoidFriday); }
+  const _buildScheduleTableV1426=window.buildScheduleTable;
+  if(typeof _buildScheduleTableV1426==='function'){
+    window.buildScheduleTable=function(wg,wi){
+      let html=_buildScheduleTableV1426.apply(this,arguments);
+      const sb=fridaySBEmployees();
+      if(!sb.length || !html.includes('friday-panel')) return html;
+      const sbCells=sb.map(emp=>`<div class="shift-cell friday-sb-cell oncall-mini-cell" title="תומך SB ליום שישי"><div class="cell-num" style="background:${emp.color||'#c026d3'}">${emp.employeeNumber}</div><span class="cell-name">${esc(emp.name)}</span><span class="cell-wfh">🏠</span></div>`).join('');
+      const row=`<div class="friday-panel-row friday-sb-row"><div class="friday-panel-time friday-sb-label"><span>🛟</span><strong>תומך SB</strong></div><div class="friday-panel-cell">${sbCells}</div></div>`;
+      return html.replace(/(<\/div>\s*<\/div>)/, row+'$1');
+    };
+  }
+
+  // Robust absence range card and action button.
+  function injectConstraintAbsenceCardV1426(){
+    const tab=document.getElementById('tab-constraints'); if(!tab) return;
+    let card=document.getElementById('constraint-absence-range-card');
+    if(!card){
+      const anchor=document.getElementById('pending-submissions-card') || tab.querySelector('.card') || tab.firstElementChild;
+      card=document.createElement('div'); card.id='constraint-absence-range-card'; card.className='card constraint-absence-card';
+      card.innerHTML=`<div class="card-title"><span>🏖️</span> היעדרות / חופשה / מחלה מתאריך עד תאריך</div><p style="font-size:.86em;color:var(--text2);margin-bottom:12px">הגדרה זו מונעת מהעובד להיכנס לשיבוצים עתידיים שחופפים לטווח התאריכים.</p><div class="form-row triple"><div class="field"><label>עובד</label><select id="con-abs-emp"></select></div><div class="field"><label>סיבה</label><select id="con-abs-type"><option value="sick">מחלה</option><option value="vacation">חופשה</option><option value="reserve">מילואים</option><option value="absence">היעדרות</option><option value="personal">נסיבות אישיות</option><option value="other">אחר</option></select></div><div class="field"><label>פירוט פנימי קצר, אופציונלי</label><input type="text" id="con-abs-note" placeholder="למנהלים בלבד"></div></div><div class="form-row"><div class="field"><label>מתאריך</label><input type="date" id="con-abs-from"></div><div class="field"><label>עד תאריך</label><input type="date" id="con-abs-to"></div></div><div class="btn-row"><button type="button" class="btn btn-warning" id="con-abs-submit">הוסף היעדרות לטווח</button></div>`;
+      if(anchor) anchor.insertAdjacentElement('afterend',card); else tab.prepend(card);
+    }
+    const sel=document.getElementById('con-abs-emp'); if(sel) sel.innerHTML=(employees||[]).map(e=>`<option value="${e.id}">#${e.employeeNumber} ${esc(e.name)}</option>`).join('');
+    const btn=document.getElementById('con-abs-submit'); if(btn && !btn.dataset.bound){ btn.dataset.bound='1'; btn.addEventListener('click',()=>window.addConstraintAbsenceRange()); }
+  }
+  window.addConstraintAbsenceRange=function(){
+    const sel=document.getElementById('con-abs-emp');
+    const empId=Number(sel?.value); const type=document.getElementById('con-abs-type')?.value||'absence';
+    const from=document.getElementById('con-abs-from')?.value; const to=document.getElementById('con-abs-to')?.value||from; const note=document.getElementById('con-abs-note')?.value||'';
+    const emp=(employees||[]).find(e=>Number(e.id)===empId);
+    if(!emp){toast('בחר עובד','error');return;}
+    if(!from){toast('בחר תאריך התחלה','error');return;}
+    absences=Array.isArray(absences)?absences:[];
+    absences.push({id:Date.now()+Math.random(),employeeId:emp.id,type,from,to,note});
+    if(typeof addAuditEvent==='function') addAuditEvent('absence',{employeeId:emp.id,employeeName:emp.name,dateStr:from,specificDate:from,shiftStart:'טווח תאריכים',status:'נרשם',note:(note||type)+(to&&to!==from?' עד '+to:'')});
+    saveData();
+    document.getElementById('con-abs-from').value=''; document.getElementById('con-abs-to').value=''; document.getElementById('con-abs-note').value='';
+    renderConstraints?.(); renderAttendance?.(); renderCoverage?.(); if(currentSchedule){renderSchedule(true); renderHome?.();}
+    toast(`✅ היעדרות נשמרה עבור ${emp.name}`);
+  };
+  const _renderConstraintsV1426=window.renderConstraints;
+  if(typeof _renderConstraintsV1426==='function') window.renderConstraints=function(){const r=_renderConstraintsV1426.apply(this,arguments); injectConstraintAbsenceCardV1426(); return r;};
+  const _updateConstraintDropdownsV1426=window.updateConstraintDropdowns;
+  if(typeof _updateConstraintDropdownsV1426==='function') window.updateConstraintDropdowns=function(){const r=_updateConstraintDropdownsV1426.apply(this,arguments); injectConstraintAbsenceCardV1426(); return r;};
+
+  setTimeout(()=>{try{setVersionV1426(); injectStyleV1426(); repairEmployeesV1426(); injectFridaySBFields(); injectConstraintAbsenceCardV1426(); if(currentSchedule){renderSchedule(true); renderHome?.();} renderEmployees?.(); renderFridayTable?.(); renderConstraints?.(); renderChecks?.();}catch(e){console.warn('v1.42.6 refresh skipped',e);}},160);
 })();
 
 </script>
