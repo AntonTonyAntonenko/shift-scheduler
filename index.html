@@ -1261,7 +1261,7 @@ body.sf-exporting .schedule-table td.time-col{font-size:.88em!important;white-sp
 // ============================================================
 // DATA & STATE
 // ============================================================
-const APP_VERSION = '1.42.6';
+const APP_VERSION = '1.42.8';
 const APP_PASSWORD_HASH_KEY = 'sf_password_hash_v2';
 const LEGACY_PASSWORD_KEY = 'sf_password'; // migration only: old local plaintext password key
 const DEFAULT_PASSWORD_HASH = '3c0a7148a98fbe8b800d95c41263624c5128cb166fb1b909bab386b00aa7331f';
@@ -7098,6 +7098,793 @@ body.sf-exporting .shift-time-text,.coverage-time-range{unicode-bidi:embed;direc
   if(typeof _updateConstraintDropdownsV1426==='function') window.updateConstraintDropdowns=function(){const r=_updateConstraintDropdownsV1426.apply(this,arguments); injectConstraintAbsenceCardV1426(); return r;};
 
   setTimeout(()=>{try{setVersionV1426(); injectStyleV1426(); repairEmployeesV1426(); injectFridaySBFields(); injectConstraintAbsenceCardV1426(); if(currentSchedule){renderSchedule(true); renderHome?.();} renderEmployees?.(); renderFridayTable?.(); renderConstraints?.(); renderChecks?.();}catch(e){console.warn('v1.42.6 refresh skipped',e);}},160);
+})();
+
+// ============================================================
+// V1.42.7 PATCH — new-employee auto rules, robust WFH toggles,
+// live constraint panel, and schedule-rule validation
+// ============================================================
+(function(){
+  const VERSION='1.42.7';
+  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const NEW_EMPLOYEE_AUTO_SHIFT='07:30';
+
+  function setVersionV1427(){
+    try{ window.APP_VERSION=VERSION; }catch(e){}
+    document.querySelectorAll('#login-version-label').forEach(el=>el.textContent=VERSION);
+    const vf=document.getElementById('version-footer'); if(vf) vf.textContent='גרסה '+VERSION;
+    const af=document.getElementById('app-footer-version'); if(af) af.textContent=VERSION;
+    const al=document.getElementById('app-version-label'); if(al) al.textContent='גרסה '+VERSION;
+    document.title='מערכת לניהול משמרות';
+  }
+
+  function injectStyleV1427(){
+    if(document.getElementById('v1427-style')) return;
+    const st=document.createElement('style'); st.id='v1427-style';
+    st.textContent=`
+      .schedule-live-grid{display:grid;grid-template-columns:minmax(260px,360px) 1fr;gap:14px;align-items:start;margin-bottom:16px}
+      @media(max-width:1100px){.schedule-live-grid{grid-template-columns:1fr}}
+      .quick-constraint-card{border-right:4px solid var(--primary);background:linear-gradient(180deg,var(--surface),var(--surface2))}
+      .quick-constraint-card .card-title{justify-content:space-between}
+      .quick-constraint-card .form-row{margin-bottom:10px}
+      .rule-check-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
+      .rule-check-list{display:flex;flex-direction:column;gap:7px;max-height:280px;overflow:auto;padding-inline-start:2px}
+      .rule-check-item{padding:8px 10px;border-radius:9px;font-size:.84em;border:1px solid var(--border);background:var(--surface2)}
+      .rule-check-item.ok{background:var(--success-light);color:var(--success);border-color:#bbf7d0;font-weight:700}
+      .rule-check-item.warn{background:#fff7ed;color:#c2410c;border-color:#fed7aa;font-weight:700}
+      .rule-check-item.bad{background:var(--danger-light);color:var(--danger);border-color:#fecaca;font-weight:700}
+      .shift-cell.wfh-cell{background:#15803d!important;border-color:#166534!important;color:#fff!important}
+      .shift-cell.wfh-cell .cell-name{color:#fff!important}
+      .shift-cell:not(.wfh-cell) .cell-wfh{display:none!important}
+      .ctx-item.ctx-critical{font-weight:800;background:#ecfdf5;color:#047857}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function shiftEndForV1427(start){
+    try{return shiftEndForStart(start);}catch(e){return (shifts||[]).find(s=>s.start===start)?.end || start;}
+  }
+  function isNewAutoAllowed(emp,shiftStart){
+    return !(emp&&emp.isNewEmployee) || shiftStart===NEW_EMPLOYEE_AUTO_SHIFT;
+  }
+  function normalizeEmployeeFlagsV1427(){
+    (employees||[]).forEach(e=>{
+      e.isNewEmployee=!!e.isNewEmployee;
+      e.canWFH=!!e.canWFH;
+      e.isManager=!!e.isManager;
+      e.isSenior=!!e.isSenior;
+      e.fixedFriday=!!e.fixedFriday;
+      e.avoidFriday=!!e.avoidFriday;
+      e.wantsFriday=!!e.wantsFriday;
+      e.fridaySB=!!e.fridaySB;
+    });
+  }
+
+  // Assignment WFH must respect a per-person OFF override even inside a WFH row.
+  window.isAssignmentWFH = isAssignmentWFH = function(assign,shiftAssignment,day){
+    if(!assign) return false;
+    if(assign.wfhOverride===false) return false;
+    return !!(assign.isWFH || shiftAssignment?.isWFH || day?.dayOfWeek===5);
+  };
+
+  function locateAssignment(empId,shiftStart,dayOfWeek,weekIdx){
+    const wg=currentSchedule?.weekGroups?.[weekIdx];
+    const day=wg?.days?.find(d=>d.dayOfWeek===dayOfWeek);
+    const sa=day?.shiftAssignments?.find(s=>s.start===shiftStart);
+    const a=sa?.employees?.find(x=>Number(x.employeeId)===Number(empId));
+    return {wg,day,sa,a};
+  }
+  function refreshAfterWfhChange(){
+    try{saveData();}catch(e){}
+    try{renderSchedule(true);}catch(e){}
+    try{renderHome?.();}catch(e){}
+    try{renderEmployees?.();}catch(e){}
+    try{renderHeaderStats?.();}catch(e){}
+    try{persistCurrentSchedule?.();}catch(e){}
+  }
+
+  window.toggleWFH=function(empId,shiftStart,dayOfWeek,weekIdx){
+    const emp=(employees||[]).find(e=>Number(e.id)===Number(empId));
+    const {day,sa,a}=locateAssignment(empId,shiftStart,dayOfWeek,weekIdx);
+    if(!emp||!day||!sa||!a){toast('לא נמצאה המשמרת לעדכון','error');return;}
+    const current=isAssignmentWFH(a,sa,day);
+    if(current){
+      a.isWFH=false;
+      a.wfhOverride=false;
+      toast(`🏢 ${emp.name} הוגדר כמשרד במשמרת זו`);
+    }else{
+      if(emp.isNewEmployee){toast(`${emp.name} עובד חדש — לא ניתן לסמן לעבודה מהבית`,'error');return;}
+      emp.canWFH=true;
+      a.isWFH=true;
+      delete a.wfhOverride;
+      toast(`🏠 ${emp.name} הוגדר כע.מהבית במשמרת זו`);
+    }
+    refreshAfterWfhChange();
+  };
+
+  window.setEmployeeWFHFlag=function(empId,value,shiftStart=null,dayOfWeek=null,weekIdx=null){
+    const emp=(employees||[]).find(e=>Number(e.id)===Number(empId));
+    if(!emp) return;
+    if(value){
+      if(emp.isNewEmployee){toast(`${emp.name} עובד חדש — לא ניתן לסמן לעבודה מהבית`,'error');return;}
+      emp.canWFH=true;
+      if(shiftStart!=null){
+        const {a}=locateAssignment(empId,shiftStart,dayOfWeek,weekIdx);
+        if(!a){toast('לא נמצאה המשמרת לעדכון','error');return;}
+        a.isWFH=true; delete a.wfhOverride;
+        toast(`🏠 ${emp.name} סומן כע.מהבית במשמרת זו`);
+      }else{
+        toast(`✅ ${emp.name} סומן כמורשה ע.מהבית`);
+      }
+    }else{
+      // This is a schedule-level cancellation. It does not remove the employee's general WFH eligibility.
+      (currentSchedule?.weekGroups||[]).forEach(wg=>wg.days.forEach(day=>day.shiftAssignments.forEach(sa=>sa.employees.forEach(a=>{
+        if(Number(a.employeeId)===Number(empId)){ a.isWFH=false; a.wfhOverride=false; }
+      }))));
+      toast(`🏢 ע.מהבית בוטל ל-${emp.name} בשיבוץ הנוכחי`);
+    }
+    refreshAfterWfhChange();
+  };
+
+  window.setShiftWFHStatus=function(shiftStart,dayOfWeek,weekIdx,value){
+    const wg=currentSchedule?.weekGroups?.[weekIdx];
+    const day=wg?.days?.find(d=>d.dayOfWeek===dayOfWeek);
+    const sa=day?.shiftAssignments?.find(s=>s.start===shiftStart);
+    if(!sa||!day){toast('לא נמצאה משמרת לעדכון','error');return;}
+    if(value){
+      const blocked=(sa.employees||[]).map(a=>(employees||[]).find(e=>Number(e.id)===Number(a.employeeId))).filter(e=>e?.isNewEmployee);
+      if(blocked.length){toast(`לא ניתן להפוך לע.מהבית: ${blocked.map(e=>e.name).join(', ')} מוגדר/ים עובד חדש`,'error');return;}
+      sa.isWFH=true;
+      (sa.employees||[]).forEach(a=>{ const emp=employees.find(e=>Number(e.id)===Number(a.employeeId)); if(emp){emp.canWFH=true;} a.isWFH=true; delete a.wfhOverride; });
+      toast('🏠 המשמרת הוגדרה כע.מהבית');
+    }else{
+      sa.isWFH=false;
+      (sa.employees||[]).forEach(a=>{a.isWFH=false; a.wfhOverride=false;});
+      toast('🏢 המשמרת הוגדרה כמשרד');
+    }
+    refreshAfterWfhChange();
+  };
+
+  window.showCtx=function(event,empId,shiftStart,dayOfWeek,weekIdx){
+    event.preventDefault(); event.stopPropagation();
+    const emp=(employees||[]).find(e=>Number(e.id)===Number(empId));
+    const menu=document.getElementById('ctx-menu'); if(!menu)return;
+    menu.innerHTML=`<div class="ctx-header">${esc(emp?.name||'')}</div>
+      <div class="ctx-item" onclick="closeCtxMenu();openSwapModal(${empId},'${shiftStart}',${dayOfWeek},${weekIdx})">🔄 החלף עם עובד אחר</div>
+      <div class="ctx-item ctx-critical" onclick="closeCtxMenu();toggleWFH(${empId},'${shiftStart}',${dayOfWeek},${weekIdx})">🏠 הפעל/כבה ע.מהבית לעובד במשמרת זו</div>
+      <div class="ctx-item" onclick="closeCtxMenu();setShiftWFHStatus('${shiftStart}',${dayOfWeek},${weekIdx},true)">🏠 הפוך את כל המשמרת לע.מהבית</div>
+      <div class="ctx-item" onclick="closeCtxMenu();setShiftWFHStatus('${shiftStart}',${dayOfWeek},${weekIdx},false)">🏢 הפוך את כל המשמרת למשרד</div>
+      <div class="ctx-divider"></div>
+      <div class="ctx-item" onclick="closeCtxMenu();setEmployeeWFHFlag(${empId},true,'${shiftStart}',${dayOfWeek},${weekIdx})">✅ סמן עובד ומשמרת כע.מהבית</div>
+      <div class="ctx-item" onclick="closeCtxMenu();setEmployeeWFHFlag(${empId},false)">🚫 בטל ע.מהבית לעובד בכל השיבוץ</div>
+      <div class="ctx-divider"></div>
+      <div class="ctx-item" onclick="closeCtxMenu();openEditEmployee(${empId})">✏️ ערוך פרטי עובד</div>
+      <div class="ctx-item" onclick="closeCtxMenu();markEmployeeAbsence(${empId})">🏖️ סמן חופש / מחלה / מילואים</div>
+      <div class="ctx-divider"></div>
+      <div class="ctx-item" onclick="closeCtxMenu();removeFromShift(${empId},'${shiftStart}',${dayOfWeek},${weekIdx})">❌ הסר ממשמרת זו</div>
+      <div class="ctx-item danger" onclick="closeCtxMenu();removeFromAllShiftsThisWeek(${empId},${weekIdx})">🗑️ הסר מכל המשמרות השבוע</div>`;
+    try{placeCtxMenu(event,menu);}catch(e){menu.style.display='block'; menu.style.left=event.clientX+'px'; menu.style.top=event.clientY+'px';}
+  };
+
+  // Auto-scheduling: a new employee may be automatically placed only at 07:30.
+  window.assignShift = assignShift = function(shift,dayOfWeek,weekKey,empSnap,assignedToday,holiday,dateStr){
+    if(holiday&&isShiftBlockedByHoliday(holiday, shift.start, shift.end)) return [];
+    const shiftMin=timeMin(shift.start);
+    const managerShiftMins=getManagerAllowedShiftMins();
+    const shiftPriority=getShiftPriority(shift.start);
+    const isNight=shiftPriority===1;
+    const isEvening=shiftPriority===2;
+    const isEveNight=isNight||isEvening;
+    const countsTowardWfhQuota=!!(shift.isWFH||isEveNight);
+
+    const available=(empSnap||[]).filter(emp=>{
+      if(assignedToday.has(emp.id))return false;
+      if(!isNewAutoAllowed(emp,shift.start))return false;
+      if(employeeBlockedForShift(emp.id,dayOfWeek,dateStr,shift.start,shift.end))return false;
+      const hasShiftBlock=(constraints||[]).some(c=>c.employeeId===emp.id&&c.shiftStart===shift.start&&!c.wfhRequired&&!c.mustWork&&constraintApplies(c,dayOfWeek,dateStr));
+      if(hasShiftBlock)return false;
+      if(shift.isWFH&&!canEmployeeWFH(emp))return false;
+      if(!shift.isWFH&&timeMin(shift.start)>=720&&timeMin(shift.start)<900&&!canEmployeeWFH(emp))return false;
+      if(isEveNight&&!canEmployeeWFH(emp))return false;
+      if(isOpeningShift(shift.start)&&emp.isNewEmployee)return false;
+      if(emp.isManager&&!managerShiftMins.includes(shiftMin))return false;
+      if(countsTowardWfhQuota&&(emp.wfhThisWeek||0)>=getWfhLimitForEmp(emp))return false;
+      if(isNight&&(emp.nightThisWeek||0)>=1)return false;
+      if(isEvening&&(emp.eveningThisWeek||0)>=1)return false;
+      return true;
+    });
+
+    const mustWork=available.filter(e=>(constraints||[]).some(c=>c.employeeId===e.id&&c.mustWork&&(!c.shiftStart||c.shiftStart===shift.start)&&constraintApplies(c,dayOfWeek,dateStr)));
+    const rest=available.filter(e=>!mustWork.some(m=>m.id===e.id));
+    const managers=rest.filter(e=>e.isManager);
+    const regular=rest.filter(e=>!e.isManager);
+    let selected=[...mustWork];
+    const remaining=shift.required-selected.length;
+
+    if(managerShiftMins.includes(shiftMin)&&managers.length>0&&remaining>0){
+      const byMgr=[...managers].sort((a,b)=>(getHistoricalLoad(a.id,countsTowardWfhQuota?'wfh':'managerShift')-getHistoricalLoad(b.id,countsTowardWfhQuota?'wfh':'managerShift'))||Math.random()-0.5);
+      selected.push(byMgr[0]);
+    }
+
+    const histKey=isNight?'night':isEvening?'evening':'wfh';
+    const fillFrom=[...regular].sort((a,b)=>{
+      const seniorBias=compareSeniorShiftPreference(a,b,shift.start); if(seniorBias)return seniorBias;
+      if(countsTowardWfhQuota){
+        const remA=getWfhLimitForEmp(a)-(a.wfhThisWeek||0), remB=getWfhLimitForEmp(b)-(b.wfhThisWeek||0);
+        if(remB!==remA)return remB-remA;
+        const histA=getHistoricalLoad(a.id,histKey), histB=getHistoricalLoad(b.id,histKey);
+        if(histA!==histB)return histA-histB;
+      }
+      return Math.random()-0.5;
+    });
+    while(selected.length<shift.required&&fillFrom.length) selected.push(fillFrom.shift());
+
+    return selected.map(emp=>{
+      assignedToday.add(emp.id);
+      const wfhByConstraint=(constraints||[]).some(c=>c.employeeId===emp.id&&c.shiftStart===shift.start&&c.wfhRequired&&constraintApplies(c,dayOfWeek,dateStr));
+      const isWFH=!!(shift.isWFH||wfhByConstraint);
+      if(isWFH||isEveNight) emp.wfhThisWeek=(emp.wfhThisWeek||0)+1;
+      if(isNight) emp.nightThisWeek=(emp.nightThisWeek||0)+1;
+      if(isEvening) emp.eveningThisWeek=(emp.eveningThisWeek||0)+1;
+      if(emp.isSenior&&(getSeniorPrimaryShifts().includes(shift.start)||getSeniorSecondaryShifts().includes(shift.start))) recordShiftHistory(emp.id,'seniorPreferred');
+      recordShiftHistory(emp.id,isWFH?'wfh':(isNight?'night':isEvening?'evening':null));
+      return {employeeId:emp.id,isWFH};
+    });
+  };
+
+  window.canAssignSupportToCritical = canAssignSupportToCritical = function(emp,dayObj,targetStart,assignedToday){
+    if(!emp||emp.isManager||emp.isSenior) return false;
+    if(emp.isNewEmployee) return false;
+    if(assignedToday.has(emp.id)) return false;
+    if(employeeBlockedForShift(emp.id,dayObj.dayOfWeek,dayObj.dateStr,targetStart,shiftEndForV1427(targetStart))) return false;
+    if(getAbsenceForEmployeeDate(emp.id,dayObj.dateStr)) return false;
+    const shiftDef=(shifts||[]).find(s=>s.start===targetStart);
+    if(shiftDef?.isWFH&&!canEmployeeWFH(emp)) return false;
+    if(isEveningOrNightShift(targetStart)&&!canEmployeeWFH(emp)) return false;
+    return true;
+  };
+
+  window.findCriticalDonor = findCriticalDonor = function(dayObj,targetStart){
+    const donorOrder=getCriticalDonorShiftOrder(targetStart);
+    const candidatesFrom=(donorSa)=> (donorSa?.employees||[]).map((a,idx)=>({assignment:a,idx,emp:getEmpById(a.employeeId)})).filter(x=>x.emp&&!x.emp.isManager&&!x.emp.isSenior&&!x.emp.isNewEmployee);
+    for(const minCount of [2,1]){
+      for(const donorStart of donorOrder){
+        if(donorStart===targetStart) continue;
+        const donorSa=dayObj.shiftAssignments.find(s=>s.start===donorStart);
+        const candidates=candidatesFrom(donorSa);
+        if(candidates.length>=minCount) return {sa:donorSa,...candidates[candidates.length-1]};
+      }
+    }
+    const ordered=[...dayObj.shiftAssignments].filter(sa=>sa.start!==targetStart&&!isCriticalSupportShift(sa.start)).sort((a,b)=>timeMin(b.start)-timeMin(a.start));
+    for(const minCount of [2,1]) for(const donorSa of ordered){ const candidates=candidatesFrom(donorSa); if(candidates.length>=minCount) return {sa:donorSa,...candidates[candidates.length-1]}; }
+    return null;
+  };
+
+  const _assignOverflowBaseV1427=window.assignOverflowToShift;
+  window.assignOverflowToShift = assignOverflowToShift = function(dayObj,dayOfWeek,empSnap,assignedToday,holiday,targetTime){
+    const shiftDef=(shifts||[]).find(s=>s.start===targetTime);
+    if(!shiftDef) return;
+    if(holiday&&isShiftBlockedByHoliday(holiday,targetTime,shiftDef.end)) return;
+    const leftover=(empSnap||[]).filter(emp=>{
+      if(assignedToday.has(emp.id))return false;
+      if(!isNewAutoAllowed(emp,targetTime))return false;
+      if(employeeBlockedForShift(emp.id,dayOfWeek,dayObj.dateStr,targetTime,shiftDef.end))return false;
+      const hasShiftBlock=(constraints||[]).some(c=>c.employeeId===emp.id&&c.shiftStart===targetTime&&!c.wfhRequired&&!c.mustWork&&constraintApplies(c,dayOfWeek,dayObj.dateStr));
+      if(hasShiftBlock)return false;
+      if(shiftDef.isWFH&&!canEmployeeWFH(emp))return false;
+      return true;
+    });
+    if(!leftover.length)return;
+    let sa=dayObj.shiftAssignments.find(s=>s.start===targetTime);
+    if(!sa){sa={shiftId:shiftDef.id,start:shiftDef.start,end:shiftDef.end,isWFH:!!shiftDef.isWFH,employees:[]}; dayObj.shiftAssignments.push(sa);}
+    leftover.forEach(emp=>{assignedToday.add(emp.id); sa.employees.push({employeeId:emp.id,isWFH:!!sa.isWFH});});
+  };
+
+  function rebuildCurrentScheduleV1427(){
+    if(!currentSchedule){toast('אין שיבוץ פעיל לחישוב מחדש','error'); return;}
+    const histBackup=JSON.parse(JSON.stringify(shiftHistory||{}));
+    const empSnapshot=JSON.parse(JSON.stringify(employees||[]));
+    currentSchedule=buildSchedule(new Date(currentSchedule.startDate), currentSchedule.weeks||1, empSnapshot);
+    shiftHistory=histBackup;
+    renderSchedule(true);
+    try{persistCurrentSchedule();}catch(e){}
+    try{saveData();}catch(e){}
+  }
+
+  function populateQuickConstraintSelects(){
+    const empSel=document.getElementById('quick-con-emp');
+    const shiftSel=document.getElementById('quick-con-shift');
+    if(empSel) empSel.innerHTML=(employees||[]).map(e=>`<option value="${e.id}">#${e.employeeNumber} ${esc(e.name)}</option>`).join('');
+    if(shiftSel) shiftSel.innerHTML='<option value="">כל היום</option>'+(shifts||[]).map(s=>`<option value="${esc(s.start)}">${esc(s.start)}-${esc(s.end)}</option>`).join('');
+    const dateEl=document.getElementById('quick-con-date');
+    if(dateEl&&!dateEl.value){
+      const base=document.getElementById('sch-start')?.value || currentSchedule?.startDate?.toISOString?.().split('T')[0] || '';
+      dateEl.value=base;
+    }
+  }
+
+  window.addLiveScheduleConstraint=function(){
+    const empId=Number(document.getElementById('quick-con-emp')?.value);
+    const dateVal=document.getElementById('quick-con-date')?.value;
+    const type=document.getElementById('quick-con-type')?.value||'block';
+    const shiftStart=document.getElementById('quick-con-shift')?.value||'';
+    const emp=(employees||[]).find(e=>Number(e.id)===empId);
+    if(!emp){toast('בחר עובד','error');return;}
+    if(!dateVal){toast('בחר תאריך','error');return;}
+    const day=new Date(dateVal+'T12:00:00').getDay();
+    const shift=(shifts||[]).find(s=>s.start===shiftStart);
+    const c={id:Date.now()+Math.random(),employeeId:emp.id,employeeName:emp.name,day,specificDate:dateVal,isPermanent:false,blockDay:type==='block',wfhRequired:type==='wfh',mustWork:type==='must'};
+    if(shiftStart&&shift){c.shiftStart=shift.start; c.shiftEnd=shift.end;}
+    (constraints=Array.isArray(constraints)?constraints:[]).push(c);
+    try{addAuditEvent?.('constraint',{employeeId:emp.id,employeeName:emp.name,dateStr:dateVal,specificDate:dateVal,shiftStart:shiftStart||'כל היום',status:'נוסף',note:type==='block'?'לא זמין':type==='wfh'?'ע.מהבית':'רוצה לעבוד'});}catch(e){}
+    saveData();
+    try{renderConstraints?.();}catch(e){}
+    rebuildCurrentScheduleV1427();
+    toast(`✅ אילוץ נוסף והשיבוץ חושב מחדש עבור ${emp.name}`);
+  };
+
+  window.validateScheduleRulesV1427=function(render=true){
+    const issues=[];
+    const ok=[];
+    if(!currentSchedule){issues.push({level:'warn',text:'אין שיבוץ פעיל לבדיקה'});}
+    (currentSchedule?.weekGroups||[]).forEach((wg,wi)=>{
+      (wg.days||[]).forEach(day=>{
+        (day.shiftAssignments||[]).forEach(sa=>{
+          const regularSupporters=(sa.employees||[]).map(a=>getEmpById(a.employeeId)).filter(e=>e&&!e.isManager&&!e.isSenior);
+          (sa.employees||[]).forEach(a=>{
+            const emp=getEmpById(a.employeeId); if(!emp)return;
+            if(emp.isNewEmployee&&day.dayOfWeek!==5&&sa.start!==NEW_EMPLOYEE_AUTO_SHIFT){issues.push({level:'warn',text:`עובד חדש ${emp.name} נמצא ב-${DAYS_HE[day.dayOfWeek]} ${sa.start}. אוטומטית מותר רק 07:30; אם זה ידני, זה תקין לפי החלטת מנהל.`});}
+            if(emp.isNewEmployee&&isAssignmentWFH(a,sa,day)){issues.push({level:'bad',text:`עובד חדש ${emp.name} מסומן כע.מהבית ב-${DAYS_HE[day.dayOfWeek]} ${sa.start}`});}
+            if(getAbsenceForEmployeeDate(emp.id,day.dateStr)){issues.push({level:'bad',text:`${emp.name} משובץ בתאריך ${day.dateStr} למרות היעדרות מתוכננת`});}
+            if(employeeBlockedForShift(emp.id,day.dayOfWeek,day.dateStr,sa.start,sa.end)){issues.push({level:'bad',text:`${emp.name} משובץ ב-${day.dateStr} ${sa.start} למרות אילוץ חסימה`});}
+          });
+          if(day.dayOfWeek>=0&&day.dayOfWeek<=4&&(isCriticalSupportShift(sa.start)||isEveningOrNightShift(sa.start))&&regularSupporters.length<1){issues.push({level:'bad',text:`חסר תומך רגיל במשמרת קריטית ${day.dateStr} ${sa.start}`});}
+        });
+      });
+    });
+    if(!issues.length) ok.push({level:'ok',text:'הבדיקה עברה: לא נמצאו חריגות מהחוקים המרכזיים'});
+    if(render){
+      const el=document.getElementById('schedule-rule-results');
+      if(el){
+        const rows=[...ok,...issues].slice(0,80).map(x=>`<div class="rule-check-item ${x.level}">${esc(x.text)}</div>`).join('');
+        el.innerHTML=rows || '<div class="rule-check-item ok">אין הערות</div>';
+      }
+    }
+    return issues;
+  };
+
+  function injectScheduleLivePanel(){
+    const out=document.getElementById('schedule-output');
+    if(!out||document.getElementById('schedule-live-panel')) return;
+    const wrap=document.createElement('div'); wrap.id='schedule-live-panel'; wrap.className='schedule-live-grid';
+    wrap.innerHTML=`<div class="card quick-constraint-card"><div class="card-title"><span>⚡ אילוץ מהיר לשיבוץ</span><button class="btn btn-ghost btn-sm" onclick="rebuildCurrentScheduleV1427?.()">חשב מחדש</button></div><p style="font-size:.84em;color:var(--text2);margin-bottom:10px">האילוץ נשמר ומחשב מחדש את השיבוץ הנוכחי לפי התאריך שבחרת.</p><div class="form-row single"><div class="field"><label>עובד</label><select id="quick-con-emp"></select></div></div><div class="form-row"><div class="field"><label>תאריך</label><input type="date" id="quick-con-date"></div><div class="field"><label>סוג אילוץ</label><select id="quick-con-type"><option value="block">לא זמין</option><option value="wfh">חייב ע.מהבית</option><option value="must">רוצה לעבוד</option></select></div></div><div class="form-row single"><div class="field"><label>משמרת</label><select id="quick-con-shift"></select></div></div><div class="btn-row"><button class="btn btn-primary" onclick="addLiveScheduleConstraint()">✅ הוסף והפעל בשיבוץ</button></div></div><div class="rule-check-card"><div class="card-title" style="margin-bottom:10px"><span>🧪 בדיקת חוקיות שיבוץ</span><button class="btn btn-ghost btn-sm" onclick="validateScheduleRulesV1427(true)">בדוק עכשיו</button></div><div id="schedule-rule-results" class="rule-check-list"><div class="rule-check-item ok">לחץ “בדוק עכשיו” אחרי שיבוץ או שינוי ידני.</div></div></div>`;
+    out.parentElement.insertBefore(wrap,out);
+    populateQuickConstraintSelects();
+  }
+  window.rebuildCurrentScheduleV1427=rebuildCurrentScheduleV1427;
+
+  const _renderScheduleV1427=window.renderSchedule;
+  if(typeof _renderScheduleV1427==='function'){
+    window.renderSchedule=function(skipAutoSave){ const r=_renderScheduleV1427.apply(this,arguments); injectScheduleLivePanel(); populateQuickConstraintSelects(); validateScheduleRulesV1427(true); return r; };
+  }
+  const _showTabV1427=window.showTab;
+  if(typeof _showTabV1427==='function'){
+    window.showTab=function(name,el){ const r=_showTabV1427.apply(this,arguments); if(name==='schedule'){setTimeout(()=>{injectScheduleLivePanel(); populateQuickConstraintSelects(); validateScheduleRulesV1427(true);},0);} return r; };
+  }
+  const _renderEmployeesV1427=window.renderEmployees;
+  if(typeof _renderEmployeesV1427==='function') window.renderEmployees=function(){ normalizeEmployeeFlagsV1427(); const r=_renderEmployeesV1427.apply(this,arguments); populateQuickConstraintSelects(); return r; };
+  const _renderShiftsV1427=window.renderShifts;
+  if(typeof _renderShiftsV1427==='function') window.renderShifts=function(){ const r=_renderShiftsV1427.apply(this,arguments); populateQuickConstraintSelects(); return r; };
+
+  function boot(){
+    setVersionV1427(); injectStyleV1427(); normalizeEmployeeFlagsV1427(); injectScheduleLivePanel(); populateQuickConstraintSelects();
+    if(currentSchedule){ try{renderSchedule(true);}catch(e){console.warn('v1.42.7 render refresh failed',e);} }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else setTimeout(boot,0);
+})();
+
+// ============================================================
+// V1.42.8 PATCH — mandatory shifts, range constraints without notes,
+// new-employee auto placement, and Friday retro log
+// ============================================================
+(function(){
+  const VERSION='1.42.8';
+  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const FIXED_ABSENCE_OPTIONS=[
+    ['sick','מחלה'],['vacation','חופשה'],['reserve','מילואים'],['absence','היעדרות'],['personal','נסיבות אישיות']
+  ];
+
+  function setVersionV1428(){
+    try{ window.APP_VERSION=VERSION; }catch(e){}
+    document.querySelectorAll('#login-version-label').forEach(el=>el.textContent=VERSION);
+    const vf=document.getElementById('version-footer'); if(vf) vf.textContent='גרסה '+VERSION;
+    const af=document.getElementById('app-footer-version'); if(af) af.textContent=VERSION;
+    const al=document.getElementById('app-version-label'); if(al) al.textContent='גרסה '+VERSION;
+  }
+
+  function injectStyleV1428(){
+    if(document.getElementById('v1428-style')) return;
+    const st=document.createElement('style'); st.id='v1428-style';
+    st.textContent=`
+      .mandatory-shift-badge{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;padding:3px 9px;border-radius:999px;font-size:.78em;font-weight:900;white-space:nowrap}
+      .mandatory-shift-badge.ok{background:#dcfce7;color:#166534;border-color:#86efac}
+      .constraint-range-card{background:#fff7ed;border-color:#fed7aa}
+      .friday-retro-card{background:#eff6ff;border-color:#bfdbfe}
+      .fixed-reason-note{font-size:.82em;color:var(--text2);margin-top:6px}
+      #con-abs-note,#quick-abs-note,#sub-note,#sub-note-field,.sensitive-note-field{display:none!important}
+      .shift-item .shift-time{direction:ltr;unicode-bidi:isolate}
+      .rule-check-item.bad{background:#fef2f2;color:#991b1b;border-color:#fecaca}
+      .shift-list-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;font-size:.82em;color:var(--text3)}
+    `;
+    document.head.appendChild(st);
+  }
+
+  function localDateFromInput(v){ return v?new Date(v+'T12:00:00'):null; }
+  function toDateInput(d){ return d.toISOString().slice(0,10); }
+  function eachDateInclusive(from,to,limit=45){
+    const a=localDateFromInput(from), b=localDateFromInput(to||from);
+    if(!a||!b||b<a) return [];
+    const out=[]; const cur=new Date(a);
+    while(cur<=b && out.length<limit){ out.push(toDateInput(cur)); cur.setDate(cur.getDate()+1); }
+    return out;
+  }
+  function typeLabel(type){ return Object.fromEntries(FIXED_ABSENCE_OPTIONS)[type]||'היעדרות'; }
+  function replaceAbsenceOptions(sel){
+    if(!sel) return;
+    const val=sel.value;
+    sel.innerHTML=FIXED_ABSENCE_OPTIONS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+    if(FIXED_ABSENCE_OPTIONS.some(x=>x[0]===val)) sel.value=val;
+  }
+
+  function normalizeMandatoryShift(s){
+    if(!s) return s;
+    s.isMandatory=!!s.isMandatory;
+    s.minCoverage=Math.max(1, Number(s.minCoverage||1));
+    return s;
+  }
+  function normalizeAllMandatoryShifts(){ (shifts||[]).forEach(normalizeMandatoryShift); }
+  function getShiftDefByStart(start){ return (shifts||[]).find(s=>s.start===start) || null; }
+  function getMandatoryShiftStarts(){ return (shifts||[]).filter(s=>s.isMandatory).map(s=>s.start); }
+  function getMandatoryShiftMin(start){ const s=getShiftDefByStart(start); return s?.isMandatory ? Math.max(1, Number(s.minCoverage||1)) : 1; }
+  function regularSupportCount(sa){ return (sa?.employees||[]).map(a=>getEmpById?.(a.employeeId)).filter(e=>e&&!e.isManager&&!e.isSenior).length; }
+
+  function injectMandatoryShiftControls(){
+    const addAnchor=document.getElementById('s-wfh-shift')?.closest('.toggle-row');
+    if(addAnchor && !document.getElementById('s-mandatory-shift')){
+      const box=document.createElement('div'); box.className='form-row'; box.innerHTML=`
+        <div class="toggle-row" style="margin:0;background:#fff7ed;border-color:#fed7aa">
+          <label for="s-mandatory-shift">🚨 משמרת חובה — קודם כל לוודא שיש בה עובד</label>
+          <label class="toggle"><input type="checkbox" id="s-mandatory-shift"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="field"><label>מינימום חובה במשמרת</label><input type="number" id="s-min-coverage" min="1" value="1"></div>`;
+      addAnchor.insertAdjacentElement('afterend',box);
+    }
+    const editAnchor=document.getElementById('ms-wfh-shift')?.closest('.toggle-row');
+    if(editAnchor && !document.getElementById('ms-mandatory-shift')){
+      const box=document.createElement('div'); box.className='form-row'; box.innerHTML=`
+        <div class="toggle-row" style="margin:0;background:#fff7ed;border-color:#fed7aa">
+          <label for="ms-mandatory-shift">🚨 משמרת חובה</label>
+          <label class="toggle"><input type="checkbox" id="ms-mandatory-shift"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="field"><label>מינימום חובה במשמרת</label><input type="number" id="ms-min-coverage" min="1" value="1"></div>`;
+      editAnchor.insertAdjacentElement('afterend',box);
+    }
+  }
+
+  window.addShift=function(){
+    const start=parseTime(document.getElementById('s-start')?.value||'');
+    const end=parseTime(document.getElementById('s-end')?.value||'');
+    const req=+document.getElementById('s-req')?.value||1;
+    const isWFH=!!document.getElementById('s-wfh-shift')?.checked;
+    const isMandatory=!!document.getElementById('s-mandatory-shift')?.checked;
+    const minCoverage=Math.max(1,+document.getElementById('s-min-coverage')?.value||1);
+    if(!start||!end){toast('שעות לא תקינות','error');return;}
+    shifts.push({id:Date.now(),start,end,required:req,isWFH,isMandatory,minCoverage});
+    shifts.sort((a,b)=>timeMin(a.start)-timeMin(b.start));
+    saveData(); renderShifts(); updateConstraintDropdowns?.(); window.populateQuickConstraintSelects?.();
+    ['s-start','s-end'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+    const reqEl=document.getElementById('s-req'); if(reqEl)reqEl.value='1';
+    const wfh=document.getElementById('s-wfh-shift'); if(wfh)wfh.checked=false;
+    const man=document.getElementById('s-mandatory-shift'); if(man)man.checked=false;
+    const min=document.getElementById('s-min-coverage'); if(min)min.value='1';
+    toast('✅ משמרת נוספה');
+  };
+
+  window.openEditShift=function(id){
+    const s=(shifts||[]).find(x=>Number(x.id)===Number(id)); if(!s)return;
+    editingShiftId=id;
+    document.getElementById('ms-start').value=s.start;
+    document.getElementById('ms-end').value=s.end;
+    document.getElementById('ms-req').value=s.required;
+    document.getElementById('ms-wfh-shift').checked=!!s.isWFH;
+    const man=document.getElementById('ms-mandatory-shift'); if(man)man.checked=!!s.isMandatory;
+    const min=document.getElementById('ms-min-coverage'); if(min)min.value=s.minCoverage||1;
+    openModal('modal-shift');
+  };
+
+  window.saveShiftEdit=function(){
+    const idx=(shifts||[]).findIndex(s=>Number(s.id)===Number(editingShiftId)); if(idx===-1)return;
+    const start=parseTime(document.getElementById('ms-start')?.value||'');
+    const end=parseTime(document.getElementById('ms-end')?.value||'');
+    if(!start||!end){toast('שעות לא תקינות','error');return;}
+    shifts[idx]={...shifts[idx],start,end,required:+document.getElementById('ms-req')?.value||1,isWFH:!!document.getElementById('ms-wfh-shift')?.checked,isMandatory:!!document.getElementById('ms-mandatory-shift')?.checked,minCoverage:Math.max(1,+document.getElementById('ms-min-coverage')?.value||1)};
+    shifts.sort((a,b)=>timeMin(a.start)-timeMin(b.start));
+    saveData(); renderShifts(); updateConstraintDropdowns?.(); closeModal('modal-shift');
+    toast('✅ משמרת עודכנה');
+  };
+
+  window.renderShifts=function(){
+    injectMandatoryShiftControls(); normalizeAllMandatoryShifts();
+    const el=document.getElementById('shifts-list'); if(!el)return;
+    if(!shifts.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">⏰</div>אין משמרות</div>';return;}
+    el.innerHTML=shifts.map(s=>`
+      <div class="shift-item">
+        <div>
+          <div class="shift-time">${esc(s.start)}-${esc(s.end)}</div>
+          <div class="shift-list-meta"><span>${s.required} עובדים לפחות</span>${s.isMandatory?`<span class="mandatory-shift-badge">🚨 חובה: ${s.minCoverage||1} לפחות</span>`:''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          ${s.isWFH?'<span class="shift-wfh-badge">🏠 ע.מהבית</span>':'<span class="shift-office-badge">🏢 משרד</span>'}
+          <button class="btn btn-ghost btn-sm" onclick="openEditShift(${s.id})">✏️ ערוך</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteShift(${s.id})">🗑️</button>
+        </div>
+      </div>`).join('');
+  };
+
+  // Mandatory shifts are treated like critical shifts and are verified before lower-priority rows.
+  window.getCriticalSupportShiftStarts = getCriticalSupportShiftStarts = function(){
+    const base=getSettingShiftList?.('criticalSupportShifts','10:00,11:30,14:30') || [];
+    return [...new Set([...base,...getMandatoryShiftStarts()])];
+  };
+  window.isCriticalSupportShift = isCriticalSupportShift = function(startTime){
+    return getCriticalSupportShiftStarts().includes(startTime);
+  };
+
+  window.ensureCriticalSupportShifts = ensureCriticalSupportShifts = function(dayObj,empSnap,assignedToday,holiday){
+    if(holiday&&holiday.type==='full') return;
+    const criticalStarts=[...new Set([
+      ...getCriticalSupportShiftStarts(),
+      ...(dayObj.shiftAssignments||[]).filter(sa=>isEveningOrNightShift(sa.start)).map(sa=>sa.start)
+    ])];
+    criticalStarts.forEach(targetStart=>{
+      const shiftDef=getShiftDefByStart(targetStart);
+      if(holiday&&isShiftBlockedByHoliday(holiday,targetStart,shiftDef?.end)) return;
+      const targetSa=getOrCreateShiftAssignmentForStart(dayObj,targetStart); if(!targetSa) return;
+      const need=shiftDef?.isMandatory ? getMandatoryShiftMin(targetStart) : 1;
+      while(regularSupportCount(targetSa)<need){
+        const donor=findCriticalDonor(dayObj,targetStart);
+        if(donor){ const [moved]=donor.sa.employees.splice(donor.idx,1); moved.isWFH=!!targetSa.isWFH; targetSa.employees.push(moved); continue; }
+        const fallback=(empSnap||[]).find(e=>canAssignSupportToCritical(e,dayObj,targetStart,assignedToday));
+        if(fallback){ assignedToday.add(fallback.id); targetSa.employees.push({employeeId:fallback.id,isWFH:!!targetSa.isWFH}); continue; }
+        break;
+      }
+    });
+  };
+
+  // Existing new-employee rule kept strict: automatic placement only at 07:30.
+  window.isNewAutoAllowed = isNewAutoAllowed = function(emp,shiftStart){
+    if(!emp?.isNewEmployee) return true;
+    return shiftStart==='07:30';
+  };
+
+  function injectConstraintRangeControls(){
+    const scope=document.getElementById('c-scope');
+    if(scope && !scope.querySelector('option[value="range"]')){
+      scope.insertAdjacentHTML('beforeend','<option value="range">📆 טווח תאריכים</option>');
+    }
+    const dateField=document.getElementById('c-date-field');
+    if(dateField && !document.getElementById('c-date-to-field')){
+      dateField.insertAdjacentHTML('afterend','<div class="field" id="c-date-to-field" style="display:none"><label>עד תאריך</label><input type="date" id="c-date-to"></div>');
+    }
+    const shiftField=document.getElementById('c-shift')?.closest('.field');
+    if(shiftField && !document.getElementById('c-absence-type-field')){
+      shiftField.insertAdjacentHTML('beforebegin',`<div class="field" id="c-absence-type-field" style="margin-bottom:12px;display:none"><label>סיבת היעדרות / אילוץ</label><select id="c-absence-type">${FIXED_ABSENCE_OPTIONS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select><div class="fixed-reason-note">ללא שדה פירוט חופשי — רק סיבה קבועה לשמירה על פרטיות.</div></div>`);
+    }
+    document.querySelectorAll('#con-abs-type,#quick-abs-type,#abs-type,#c-absence-type').forEach(replaceAbsenceOptions);
+    const note=document.getElementById('con-abs-note'); if(note) note.closest('.field')?.remove();
+  }
+
+  window.updateConstraintScopeFields=function(){
+    injectConstraintRangeControls();
+    const scope=document.getElementById('c-scope')?.value||'permanent';
+    const dayF=document.getElementById('c-day-field'), dateF=document.getElementById('c-date-field'), dateToF=document.getElementById('c-date-to-field'), reasonF=document.getElementById('c-absence-type-field');
+    if(dayF) dayF.style.display = scope==='permanent' ? 'block' : 'none';
+    if(dateF) dateF.style.display = (scope==='date'||scope==='range') ? 'block' : 'none';
+    if(dateToF) dateToF.style.display = scope==='range' ? 'block' : 'none';
+    if(reasonF) reasonF.style.display = scope==='range' ? 'block' : 'none';
+  };
+
+  function addRangeConstraintsForEmployee(emp,from,to,type){
+    const dates=eachDateInclusive(from,to);
+    if(!dates.length){toast('טווח תאריכים לא תקין','error');return false;}
+    constraints=Array.isArray(constraints)?constraints:[];
+    dates.forEach(ds=>{
+      const day=localDateFromInput(ds).getDay();
+      constraints.push({id:Date.now()+Math.random(),employeeId:emp.id,employeeName:emp.name,day,specificDate:ds,isPermanent:false,blockDay:true,wfhRequired:false,mustWork:false,absenceType:type,blockFrom:null,blockTo:null});
+    });
+    absences=Array.isArray(absences)?absences:[];
+    absences.push({id:Date.now()+Math.random(),employeeId:emp.id,type,from,to});
+    try{addAuditEvent?.('absence',{employeeId:emp.id,employeeName:emp.name,dateStr:from,specificDate:from,shiftStart:'טווח תאריכים',status:'נרשם',note:`${typeLabel(type)}: ${emp.name} לא יהיה מ-${from} עד ${to}`});}catch(e){}
+    return true;
+  }
+
+  window.addConstraint=function(){
+    injectConstraintRangeControls();
+    const empId=+document.getElementById('c-emp')?.value;
+    const emp=(employees||[]).find(e=>Number(e.id)===Number(empId));
+    if(!emp){toast('בחר עובד','error');return;}
+    const scope=document.getElementById('c-scope')?.value||'permanent';
+    if(scope==='range'){
+      const from=document.getElementById('c-date')?.value;
+      const to=document.getElementById('c-date-to')?.value||from;
+      const type=document.getElementById('c-absence-type')?.value||'absence';
+      if(addRangeConstraintsForEmployee(emp,from,to,type)){
+        saveData(); renderConstraints?.(); renderAttendance?.(); renderCoverage?.(); if(currentSchedule){renderSchedule(true); renderHome?.();}
+        ['c-date','c-date-to'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+        toast(`✅ ${typeLabel(type)} נשמרה עבור ${emp.name} מ-${from} עד ${to}`);
+      }
+      return;
+    }
+    // Original single-day / permanent logic, without free text.
+    const specificDate=document.getElementById('c-date')?.value;
+    const day = scope==='date' ? (specificDate ? localDateFromInput(specificDate).getDay() : null) : +document.getElementById('c-day')?.value;
+    const sIdx=+document.getElementById('c-shift')?.value;
+    const blockDay=!!document.getElementById('c-block')?.checked;
+    const blockFrom=parseTime(document.getElementById('c-block-from')?.value||'');
+    const blockTo=parseTime(document.getElementById('c-block-to')?.value||'');
+    const wfhReq=!!document.getElementById('c-wfh-req')?.checked;
+    const mustWork=!!document.getElementById('c-must')?.checked;
+    if(scope==='date'&&!specificDate){toast('בחר תאריך','error');return;}
+    if(blockDay && ((document.getElementById('c-block-from')?.value||'').trim() || (document.getElementById('c-block-to')?.value||'').trim()) && !blockFrom){toast('שעת התחלת חסימה לא תקינה','error');return;}
+    const isPerm=scope==='permanent';
+    const base={employeeId:empId,employeeName:emp.name,day,blockDay,wfhRequired:wfhReq,mustWork,isPermanent:isPerm,specificDate: scope==='date'?specificDate:null};
+    if(blockFrom) base.blockFrom=blockFrom; if(blockTo) base.blockTo=blockTo;
+    if(!blockDay&&shifts[sIdx]){base.shiftStart=shifts[sIdx].start;base.shiftEnd=shifts[sIdx].end;}
+    if(editingConstraintId!==null){
+      const idx=constraints.findIndex(c=>Number(c.id)===Number(editingConstraintId));
+      if(idx!==-1){ const c={...constraints[idx],...base}; if(blockDay){delete c.shiftStart; delete c.shiftEnd;} constraints[idx]=c; saveData(); renderConstraints(); toast('✅ אילוץ עודכן'); }
+      cancelConstraintEdit(); return;
+    }
+    constraints.push({id:Date.now()+Math.random(),...base});
+    constraints.sort((a,b)=>(b.isPermanent?1:0)-(a.isPermanent?1:0));
+    saveData(); renderConstraints(); if(currentSchedule){renderSchedule(true); renderHome?.();}
+    ['c-block','c-wfh-req','c-must'].forEach(id=>{const el=document.getElementById(id); if(el)el.checked=false;});
+    ['c-date','c-date-to','c-block-from','c-block-to'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+    toast(`✅ אילוץ נוסף ל-${emp.name}`);
+  };
+
+  window.addConstraintAbsenceRange=function(){
+    const empId=Number(document.getElementById('con-abs-emp')?.value);
+    const emp=(employees||[]).find(e=>Number(e.id)===empId);
+    const from=document.getElementById('con-abs-from')?.value;
+    const to=document.getElementById('con-abs-to')?.value||from;
+    const type=document.getElementById('con-abs-type')?.value||'absence';
+    if(!emp){toast('בחר עובד','error');return;}
+    if(addRangeConstraintsForEmployee(emp,from,to,type)){
+      saveData(); renderConstraints?.(); renderAttendance?.(); renderCoverage?.(); if(currentSchedule){renderSchedule(true); renderHome?.();}
+      ['con-abs-from','con-abs-to'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+      toast(`✅ ${typeLabel(type)} נשמרה עבור ${emp.name}`);
+    }
+  };
+
+  function sanitizeAbsenceCards(){
+    document.querySelectorAll('#con-abs-type,#quick-abs-type').forEach(replaceAbsenceOptions);
+    document.querySelectorAll('#con-abs-note,#quick-abs-note').forEach(el=>el.closest('.field')?.remove());
+    document.querySelectorAll('option[value="other"]').forEach(o=>{ const sel=o.parentElement; if(sel&&['con-abs-type','quick-abs-type','c-absence-type'].includes(sel.id)) o.remove(); });
+  }
+
+  function injectFridayRetroLog(){
+    const tab=document.getElementById('tab-friday'); if(!tab||document.getElementById('friday-retro-log-card')) return;
+    const card=document.createElement('div'); card.id='friday-retro-log-card'; card.className='card friday-retro-card';
+    card.innerHTML=`<div class="card-title"><span>🕓</span> לוג רטרו ימי שישי</div><p style="font-size:.86em;color:var(--text2);margin-bottom:12px">רישום זה מעדכן את היסטוריית שישי, כדי שהרוטציה תתחשב גם בשבועות קודמים. מינימום ברירת מחדל: אחת ל-3 שבועות.</p><div class="form-row triple"><div class="field"><label>עובד</label><select id="fr-log-emp"></select></div><div class="field"><label>תאריך שישי שעבד</label><input type="date" id="fr-log-date"></div><div class="field" style="display:flex;align-items:flex-end"><button class="btn btn-primary" onclick="addFridayRetroLog()">הוסף ללוג שישי</button></div></div><div id="friday-retro-log-list"></div>`;
+    const table=document.getElementById('friday-table'); table?.closest('.card')?.insertAdjacentElement('beforebegin',card);
+    populateFridayRetroLog();
+  }
+  function populateFridayRetroLog(){
+    const sel=document.getElementById('fr-log-emp'); if(sel) sel.innerHTML=(employees||[]).map(e=>`<option value="${e.id}">#${e.employeeNumber} ${esc(e.name)}</option>`).join('');
+    const list=document.getElementById('friday-retro-log-list'); if(!list)return;
+    const rows=(employees||[]).filter(e=>e.fridayHistory&&e.fridayHistory.length).slice(0,60).map(e=>`<div style="font-size:.86em;padding:6px 0;border-top:1px solid var(--border)"><b>#${e.employeeNumber} ${esc(e.name)}</b> — ${(e.fridayHistory||[]).slice(-5).reverse().map(formatWeekKeyHe).join(', ')}</div>`).join('');
+    list.innerHTML=rows||'<div style="font-size:.86em;color:var(--text3)">אין עדיין לוג שישי.</div>';
+  }
+  window.addFridayRetroLog=function(){
+    const emp=(employees||[]).find(e=>Number(e.id)===Number(document.getElementById('fr-log-emp')?.value));
+    const dateStr=document.getElementById('fr-log-date')?.value;
+    if(!emp||!dateStr){toast('בחר עובד ותאריך','error');return;}
+    const d=localDateFromInput(dateStr);
+    if(d.getDay()!==5 && !confirm('התאריך שנבחר אינו יום שישי. להוסיף בכל זאת ללוג שישי?')) return;
+    const wk=getWeekKey(d); recordFriday(emp,wk); saveData(); renderFridayTable?.(); populateFridayRetroLog(); toast(`✅ נרשם שישי עבור ${emp.name}`);
+  };
+
+  const _renderFridayTable1428=window.renderFridayTable;
+  if(typeof _renderFridayTable1428==='function') window.renderFridayTable=function(){ const r=_renderFridayTable1428.apply(this,arguments); injectFridayRetroLog(); populateFridayRetroLog(); return r; };
+  const _renderConstraints1428=window.renderConstraints;
+  if(typeof _renderConstraints1428==='function') window.renderConstraints=function(){ const r=_renderConstraints1428.apply(this,arguments); injectConstraintRangeControls(); updateConstraintScopeFields(); sanitizeAbsenceCards(); return r; };
+  const _renderShifts1428=window.renderShifts;
+  if(typeof _renderShifts1428==='function') window.renderShifts=function(){ const r=_renderShifts1428.apply(this,arguments); injectMandatoryShiftControls(); return r; };
+
+  function bootV1428(){
+    setVersionV1428(); injectStyleV1428(); injectMandatoryShiftControls(); injectConstraintRangeControls(); updateConstraintScopeFields(); sanitizeAbsenceCards(); normalizeAllMandatoryShifts(); renderShifts?.(); injectFridayRetroLog(); populateFridayRetroLog();
+    if(currentSchedule){ try{renderSchedule(true); renderHome?.(); window.validateScheduleRulesV1427?.(true);}catch(e){console.warn('v1.42.8 refresh skipped',e);} }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bootV1428); else setTimeout(bootV1428,0);
+})();
+
+// V1.42.8 final tightening — quick absence also creates constraints, no free-text reason, and new employees can be auto-placed outside 07:30 only by explicit positive constraint.
+(function(){
+  function hasExplicitNewEmployeeShiftApproval(emp,shiftStart){
+    return (constraints||[]).some(c=>Number(c.employeeId)===Number(emp?.id)&&c.mustWork&&(!c.shiftStart||c.shiftStart===shiftStart));
+  }
+  window.isNewAutoAllowed = isNewAutoAllowed = function(emp,shiftStart){
+    if(!emp?.isNewEmployee) return true;
+    return shiftStart==='07:30' || hasExplicitNewEmployeeShiftApproval(emp,shiftStart);
+  };
+  window.addQuickAbsence=function(){
+    const empId=Number(document.getElementById('quick-abs-emp')?.value);
+    const emp=(employees||[]).find(e=>Number(e.id)===empId);
+    const type=document.getElementById('quick-abs-type')?.value||'absence';
+    const from=document.getElementById('quick-abs-from')?.value;
+    const to=document.getElementById('quick-abs-to')?.value||from;
+    if(!emp||!from){toast('בחר עובד ותאריך','error');return;}
+    if(typeof addRangeConstraintsForEmployee==='function'){
+      addRangeConstraintsForEmployee(emp,from,to,type);
+    }else{
+      absences=Array.isArray(absences)?absences:[];
+      absences.push({id:Date.now()+Math.random(),employeeId:emp.id,type,from,to});
+    }
+    saveData(); renderAttendance?.(); renderCoverage?.(); renderConstraints?.(); if(currentSchedule){renderSchedule(true); renderHome?.();}
+    ['quick-abs-from','quick-abs-to'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+    toast('✅ ההיעדרות נרשמה גם כאילוץ ותשפיע על השיבוץ הבא');
+  };
+  const _validate1428=window.validateScheduleRulesV1427;
+  if(typeof _validate1428==='function'){
+    window.validateScheduleRulesV1427=function(render=true){
+      const issues=_validate1428.call(this,false)||[];
+      (currentSchedule?.weekGroups||[]).forEach(wg=>(wg.days||[]).forEach(day=>(day.shiftAssignments||[]).forEach(sa=>{
+        const def=(shifts||[]).find(s=>s.start===sa.start);
+        if(def?.isMandatory){
+          const min=Math.max(1,Number(def.minCoverage||1));
+          const count=(sa.employees||[]).map(a=>getEmpById?.(a.employeeId)).filter(e=>e&&!e.isManager&&!e.isSenior).length;
+          if(count<min) issues.push({level:'bad',text:`משמרת חובה ${day.dateStr} ${sa.start}-${sa.end}: יש ${count}, נדרש לפחות ${min}`});
+        }
+      })));
+      if(render){
+        const el=document.getElementById('schedule-rule-results');
+        if(el){
+          if(!issues.length) el.innerHTML='<div class="rule-check-item ok">הבדיקה עברה: לא נמצאו חריגות מהחוקים המרכזיים</div>';
+          else el.innerHTML=issues.slice(0,100).map(x=>`<div class="rule-check-item ${x.level||'warn'}">${String(x.text||'')}</div>`).join('');
+        }
+      }
+      return issues;
+    };
+  }
+})();
+
+// V1.42.8 hotfix — quick absence creates both absence record and dated blocking constraints without free text.
+(function(){
+  const ABS_LABELS={sick:'מחלה',vacation:'חופשה',reserve:'מילואים',absence:'היעדרות',personal:'נסיבות אישיות'};
+  function localDate(v){return v?new Date(v+'T12:00:00'):null;}
+  function iso(d){return d.toISOString().slice(0,10);}
+  function dates(from,to){const a=localDate(from),b=localDate(to||from); if(!a||!b||b<a)return[]; const out=[],c=new Date(a); while(c<=b&&out.length<45){out.push(iso(c)); c.setDate(c.getDate()+1);} return out;}
+  function addAbsenceAndConstraints(emp,from,to,type){
+    const ds=dates(from,to); if(!ds.length){toast('טווח תאריכים לא תקין','error');return false;}
+    absences=Array.isArray(absences)?absences:[]; constraints=Array.isArray(constraints)?constraints:[];
+    absences.push({id:Date.now()+Math.random(),employeeId:emp.id,type,from,to});
+    ds.forEach(dateStr=>constraints.push({id:Date.now()+Math.random(),employeeId:emp.id,employeeName:emp.name,day:localDate(dateStr).getDay(),specificDate:dateStr,isPermanent:false,blockDay:true,wfhRequired:false,mustWork:false,absenceType:type}));
+    try{addAuditEvent?.('absence',{employeeId:emp.id,employeeName:emp.name,dateStr:from,specificDate:from,shiftStart:'טווח תאריכים',status:'נרשם',note:`${ABS_LABELS[type]||'היעדרות'}: ${emp.name} לא יהיה מ-${from} עד ${to}`});}catch(e){}
+    return true;
+  }
+  window.addQuickAbsence=function(){
+    const emp=(employees||[]).find(e=>Number(e.id)===Number(document.getElementById('quick-abs-emp')?.value));
+    const type=document.getElementById('quick-abs-type')?.value||'absence';
+    const from=document.getElementById('quick-abs-from')?.value;
+    const to=document.getElementById('quick-abs-to')?.value||from;
+    if(!emp||!from){toast('בחר עובד ותאריך','error');return;}
+    if(addAbsenceAndConstraints(emp,from,to,type)){
+      saveData(); renderAttendance?.(); renderCoverage?.(); renderConstraints?.(); if(currentSchedule){renderSchedule(true); renderHome?.();}
+      ['quick-abs-from','quick-abs-to'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+      toast('✅ ההיעדרות נרשמה גם כאילוץ ותשפיע על השיבוץ הבא');
+    }
+  };
 })();
 
 </script>
