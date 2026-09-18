@@ -596,7 +596,7 @@ body.sf-exporting .schedule-table td.time-col{font-size:.88em!important;white-sp
     <input type="password" id="login-pass" placeholder="סיסמה" onkeydown="if(event.key==='Enter')doLogin()">
     <button onclick="doLogin()">כניסה למערכת</button>
     <div class="login-error" id="login-err"></div>
-    <div class="login-version">גרסה <span id="login-version-label">1.44.3-candidate</span></div>
+    <div class="login-version">גרסה <span id="login-version-label">1.44.8</span></div>
   </div>
 </div>
 
@@ -1140,7 +1140,7 @@ body.sf-exporting .schedule-table td.time-col{font-size:.88em!important;white-sp
   </div>
   <footer class="app-footer">
     <span>כל הזכויות שמורות ל־A.T.A OneShift</span>
-    <span class="version-pill" id="version-footer">גרסה 1.44.3-candidate</span>
+    <span class="version-pill" id="version-footer">גרסה 1.44.8</span>
   </footer>
 </div>
 
@@ -1261,7 +1261,7 @@ body.sf-exporting .schedule-table td.time-col{font-size:.88em!important;white-sp
 // ============================================================
 // DATA & STATE
 // ============================================================
-const APP_VERSION = '1.44.3-candidate';
+const APP_VERSION = '1.44.8';
 const APP_PASSWORD_HASH_KEY = 'sf_password_hash_v2';
 const LEGACY_PASSWORD_KEY = 'sf_password'; // migration only: old local plaintext password key
 const DEFAULT_PASSWORD_HASH = ''; // disabled in v1.44.0 — no hard-coded default verifier
@@ -8569,7 +8569,7 @@ body.sf-exporting .shift-time-text,.coverage-time-range{unicode-bidi:embed;direc
     const scheduleCard=[...home.querySelectorAll('.card')].find(c=>c.querySelector('.card-title')?.textContent?.includes('השיבוץ שנקבע'));
     const card=document.createElement('div'); card.id='home-main-scheduler'; card.className='card home-main-scheduler-card';
     card.innerHTML=`
-      <div class="card-title"><span>📅</span> שיבוץ לפי אילוצים <span class="candidate-pill">גרסת בדיקה</span></div>
+      <div class="card-title"><span>📅</span> שיבוץ לפי אילוצים </div>
       <div class="form-row triple">
         <div class="field"><label>תאריך התחלה לשבוע</label><input type="date" id="home-sch-start" value="${esc(defaultScheduleStart())}"></div>
         <div class="field"><label>מספר שבועות</label><input type="number" id="home-sch-weeks" min="1" max="12" value="${esc(document.getElementById('sch-weeks')?.value||currentSchedule?.weeks||1)}"></div>
@@ -8791,7 +8791,7 @@ body.sf-exporting .shift-time-text,.coverage-time-range{unicode-bidi:embed;direc
 // constraint matrix, and stronger schedule enforcement
 // ============================================================
 (function(){
-  const VERSION='1.44.3-candidate';
+  const VERSION='1.44.8';
   const SOURCE='manager-week-grid-v1432';
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const pad=n=>String(n).padStart(2,'0');
@@ -9090,11 +9090,11 @@ body.sf-exporting .shift-time-text,.coverage-time-range{unicode-bidi:embed;direc
 
 
 // ============================================================
-// OneShift v1.44.3-candidate patch
+// OneShift v1.44.8 patch
 // Stable/Beta version labels + WFH quota deduction from blocked days
 // ============================================================
 (function(){
-  const VERSION='1.44.3-candidate';
+  const VERSION='1.44.8';
   const STABLE_VERSION='1.42.9-stable-previous';
   try{ window.APP_VERSION=VERSION; window.APP_CHANNEL='candidate'; window.APP_STABLE_VERSION=STABLE_VERSION; }catch(e){}
 
@@ -9161,11 +9161,11 @@ function isEmployeeUnavailableForWfhQuota(empId,dateStr){
 
 <script>
 // ============================================================
-// OneShift v1.43.4-candidate — typography, fixed constraints,
+// OneShift v1.44.8 — typography, fixed constraints,
 // manager override visibility, WFH quota reasons, laptop layout.
 // ============================================================
 (function(){
-  const VERSION='1.43.4-candidate';
+  const VERSION='1.44.8';
   const SOURCE='manager-week-grid-v1434';
   const DAY_NAMES=window.DAYS_HE || ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -9535,7 +9535,7 @@ body.sf-exporting .role-manager,body.sf-exporting .role-senior{border-width:1px!
 </style>
 <script id="oneshift-v1435-patch">
 (function(){
-  const VERSION='1.44.3-candidate';
+  const VERSION='1.44.8';
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const DAY_NAMES=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
   const ABS_LABEL={sick:'מחלה',vacation:'חופשה',reserve:'מילואים',absence:'היעדרות',personal:'נסיבות אישיות',other:'היעדרות'};
@@ -9699,7 +9699,7 @@ body.sf-exporting .role-manager,body.sf-exporting .role-senior{border-width:1px!
 </style>
 <script id="oneshift-v1436-version-and-font">
 (function(){
-  const VERSION='1.44.3-candidate';
+  const VERSION='1.44.8';
   try{window.APP_VERSION=VERSION;window.APP_CHANNEL='candidate';}catch(e){}
   function applyVersion(){
     const footer=document.getElementById('version-footer'); if(footer) footer.textContent='גרסה '+VERSION;
@@ -9804,7 +9804,7 @@ body.sf-exporting .role-manager,body.sf-exporting .role-senior{border-width:1px!
 <script id="oneshift-v1440-core">
 (function(){
 'use strict';
-const VERSION='1.44.3-candidate';
+const VERSION='1.44.8';
 const heDaysShort=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
 const q=s=>document.querySelector(s), qa=s=>[...document.querySelectorAll(s)];
 const esc144=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -10143,7 +10143,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </script>
 
 
-<!-- OneShift v1.44.3-candidate — typography, holiday WFH quota, clean shift min/max, Friday shifts -->
+<!-- OneShift v1.44.8 — typography, holiday WFH quota, clean shift min/max, Friday shifts -->
 <style id="oneshift-v1441-style">
   :root{--oneshift-font:Arial,sans-serif!important}
   html,body,body *,body *::before,body *::after,
@@ -10205,7 +10205,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="oneshift-v1441-patch">
 (function(){
 'use strict';
-const VERSION='1.44.3-candidate';
+const VERSION='1.44.8';
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const DAY_SHORT=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳'];
@@ -10300,7 +10300,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 
 
-<!-- OneShift v1.44.3-candidate — typography unification, manager labels, employee portal links -->
+<!-- OneShift v1.44.8 — typography unification, manager labels, employee portal links -->
 <style id="oneshift-v1442-style">
   :root{--oneshift-ui-font:Arial,"Segoe UI",sans-serif}
   html,body,body *,body *::before,body *::after,button,input,select,textarea,option,label,table,thead,tbody,tr,th,td{
@@ -10369,7 +10369,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="oneshift-v1442-patch">
 (function(){
 'use strict';
-const VERSION='1.44.3-candidate';
+const VERSION='1.44.8';
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
 function applyVersion(){const f=q('#version-footer');if(f)f.textContent='גרסה '+VERSION;const l=q('#login-version-label');if(l)l.textContent=VERSION;try{document.documentElement.dataset.oneshiftVersion=VERSION}catch(e){}}
 
@@ -10379,7 +10379,7 @@ function applyVersion(){const f=q('#version-footer');if(f)f.textContent='גרס�
   if(typeof prev!=='function'||prev._v1442manager)return;
   const wrapped=function(emp,shiftStart,dayOfWeek,weekIdx,isWFH){
     let html=prev.apply(this,arguments);
-    if(emp&&emp.isManager&&Number(dayOfWeek)>=0&&Number(dayOfWeek)<=4){
+    if(false&&emp&&emp.isManager&&Number(dayOfWeek)>=0&&Number(dayOfWeek)<=4){
       const role=shiftStart==='07:30'?'אחמ״ש ראשי':shiftStart==='09:00'?'אחמ״ש משני':'';
       if(role){
         html=html.replace(/<span class="cell-name"([^>]*)>([\s\S]*?)<\/span>/,function(all,attrs,inside){
@@ -10464,7 +10464,7 @@ setTimeout(boot,900);setTimeout(applyVersion,1800);
 </style>
 <script id="oneshift-v1442-manager-dom-hotfix">
 (function(){
-  function decorate(){
+  function decorate(){ return;
     document.querySelectorAll('.shift-cell[data-emp][data-shift][data-day]').forEach(cell=>{
       const day=Number(cell.dataset.day),shift=cell.dataset.shift,emp=(window.employees||employees||[]).find(e=>String(e.id)===String(cell.dataset.emp));
       const name=cell.querySelector('.cell-name');if(!name||!emp?.isManager||day<0||day>4)return;
@@ -10483,7 +10483,7 @@ setTimeout(boot,900);setTimeout(applyVersion,1800);
 </script>
 
 
-<!-- OneShift v1.44.3-candidate — readability alignment patch -->
+<!-- OneShift v1.44.8 — readability alignment patch -->
 <style id="oneshift-v1443-typography-fix">
   :root{--oneshift-clean-font:Arial,Helvetica,sans-serif}
   html,body,body *,button,input,select,textarea,option,label,table,thead,tbody,tr,th,td,
@@ -10574,7 +10574,7 @@ setTimeout(boot,900);setTimeout(applyVersion,1800);
 <script id="oneshift-v1443-readability-patch">
 (function(){
 'use strict';
-const VERSION='1.44.3-candidate';
+const VERSION='1.44.8';
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
 function setVersion(){const a=q('#login-version-label');if(a)a.textContent=VERSION;const b=q('#version-footer');if(b)b.textContent='גרסה '+VERSION;try{window.APP_VERSION=VERSION}catch(e){}}
 function cleanHeaders(){
@@ -10588,7 +10588,7 @@ function normalizeInlineFonts(){
   const empty=qa('.constraint-debug-list div').find(x=>x.textContent.trim()==='אין אילוצים שמורים לעובד הזה.');
   if(empty){empty.style.setProperty('font-family','Arial, Helvetica, sans-serif','important');empty.style.setProperty('font-weight','400','important');empty.style.setProperty('font-size','16px','important')}
 }
-function decorateManagerLabels(){
+function decorateManagerLabels(){ return;
   qa('.shift-cell[data-emp][data-shift][data-day]').forEach(cell=>{
     const day=Number(cell.dataset.day),start=cell.dataset.shift;
     const emp=(window.employees||[]).find(e=>String(e.id)===String(cell.dataset.emp));
@@ -10607,7 +10607,7 @@ setTimeout(refresh,1000);setTimeout(refresh,2200);
 </script>
 
 
-<!-- OneShift v1.44.5-candidate — typography, checks, roles, holidays, constraint holiday awareness, shift ordering -->
+<!-- OneShift v1.44.8 — typography, checks, roles, holidays, constraint holiday awareness, shift ordering -->
 <style id="oneshift-v1444-style">
   :root{--os-font:Arial,Helvetica,sans-serif!important}
   html,body,body *,body *::before,body *::after,
@@ -10713,7 +10713,7 @@ setTimeout(refresh,1000);setTimeout(refresh,2200);
 <script id="oneshift-v1444-patch">
 (function(){
 'use strict';
-const VERSION='1.44.5-candidate';
+const VERSION='1.44.8';
 const q=s=>document.querySelector(s), qa=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function setVersion(){const a=q('#login-version-label');if(a)a.textContent=VERSION;const b=q('#version-footer');if(b)b.textContent='גרסה '+VERSION;try{document.documentElement.dataset.oneshiftVersion=VERSION}catch(e){}}
@@ -10759,7 +10759,7 @@ function replaceVisibleWfh(){
 }
 function stripMoonHeaders(){qa('.schedule-table thead th,.friday-panel-header').forEach(el=>{const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode())if((n.nodeValue||'').includes('🌙'))n.nodeValue=n.nodeValue.replace(/🌙/g,'').replace(/\s{2,}/g,' ')})}
 
-function decorateRoles(){
+function decorateRoles(){ return;
   qa('.shift-cell[data-emp][data-shift][data-day]').forEach(cell=>{
     cell.querySelectorAll('.cell-role,.manager-shift-label,.role-shift-label').forEach(x=>x.remove());
     const emp=(window.employees||employees||[]).find(e=>String(e.id)===String(cell.dataset.emp));const name=cell.querySelector('.cell-name');if(!emp||!name)return;
@@ -10834,7 +10834,7 @@ setTimeout(refreshAll,1200);setTimeout(setVersion,2200);
 </script>
 
 
-<!-- OneShift v1.44.5-candidate — schedule freeze fix, configurable role labels, role overflow and on-call typography -->
+<!-- OneShift v1.44.8 — schedule freeze fix, configurable role labels, role overflow and on-call typography -->
 <style id="oneshift-v1445-stability-style">
   :root{--os-font-final:Arial,Helvetica,sans-serif!important}
   .shift-cell{overflow:hidden!important;min-width:0!important}
@@ -10865,7 +10865,7 @@ setTimeout(refreshAll,1200);setTimeout(setVersion,2200);
 <script id="oneshift-v1445-stability-patch">
 (function(){
 'use strict';
-const VERSION='1.44.5-candidate';
+const VERSION='1.44.8';
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
 function version(){const a=q('#login-version-label');if(a)a.textContent=VERSION;const b=q('#version-footer');if(b)b.textContent='גרסה '+VERSION;try{document.documentElement.dataset.oneshiftVersion=VERSION}catch(e){}}
 function labelValue(key,fallback){const v=window.settings&&String(settings[key]??'').trim();return v||fallback}
@@ -10938,7 +10938,7 @@ setTimeout(refresh,1200);setTimeout(version,2800);
 </script>
 
 
-<!-- OneShift v1.44.6-candidate — stability, role caps, Sukkot half-day, typography -->
+<!-- OneShift v1.44.8 — stability, role caps, Sukkot half-day, typography -->
 <style id="oneshift-v1446-style">
   :root{--os1446-font:Arial,Helvetica,sans-serif!important}
   html,body,body *,body *::before,body *::after,button,input,select,textarea,option,label,a,
@@ -10986,7 +10986,7 @@ window.buildManualAttendancePanel=buildManualAttendancePanel;
 <script id="oneshift-v1446-patch">
 (function(){
 'use strict';
-const VERSION='1.44.6-candidate';
+const VERSION='1.44.8';
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function setVersion(){const a=q('#login-version-label');if(a)a.textContent=VERSION;const b=q('#version-footer');if(b)b.textContent='גרסה '+VERSION;try{document.documentElement.dataset.oneshiftVersion=VERSION}catch(e){}}
@@ -11105,6 +11105,338 @@ if(typeof old==='function'&&!old._v1446HolidayFix){
 }
 window.osCleanHolidayConflictReportV1446=cleanRenderedConflictReports;
 setTimeout(cleanRenderedConflictReports,250);setTimeout(cleanRenderedConflictReports,1500);setTimeout(cleanRenderedConflictReports,3300);
+})();
+</script>
+
+
+<!-- OneShift v1.44.8 — consolidated production hotfix -->
+<style id="oneshift-v1447-final-style">
+:root{--os-final-font:Arial,Helvetica,"Segoe UI",sans-serif!important}
+html,body,body *,body *::before,body *::after,button,input,select,textarea,option,label,a,
+table,thead,tbody,tr,th,td,div,span,strong,small,p,h1,h2,h3,h4,h5,h6{
+  font-family:var(--os-final-font)!important;font-style:normal!important;font-variant:normal!important;letter-spacing:0!important;
+}
+::placeholder{font-family:var(--os-final-font)!important}
+.candidate-pill,.version-switcher,.version-channel-switcher{display:none!important}
+
+/* Schedule typography and compactness */
+.schedule-table th,.schedule-table th *{font-family:var(--os-final-font)!important}
+.schedule-table thead th{font-size:17px!important;font-weight:700!important;line-height:1.28!important;padding-top:10px!important;padding-bottom:10px!important}
+.schedule-table thead th .day-date,.schedule-table thead th span{font-size:inherit!important}
+.schedule-table td.time-col{vertical-align:middle!important;text-align:center!important;font-size:15px!important;font-weight:700!important;padding:4px 6px!important}
+.schedule-table td.time-col .shift-time-text{display:flex!important;align-items:center!important;justify-content:center!important;min-height:100%!important;white-space:nowrap!important;font-size:15px!important;line-height:1.1!important}
+.shift-cell{display:flex!important;align-items:center!important;flex-wrap:nowrap!important;gap:5px!important;min-height:36px!important;padding:5px 8px!important;overflow:hidden!important}
+.shift-cell .cell-name{font-family:var(--os-final-font)!important;font-size:17px!important;font-weight:700!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;display:block!important;flex:1 1 auto!important;min-width:0!important}
+.cell-num{width:26px!important;height:26px!important;min-width:26px!important;min-height:26px!important;border-radius:50%!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;line-height:1!important;font-size:13px!important;font-weight:700!important;padding:0!important}
+.cell-wfh{font-size:14px!important;line-height:1!important;min-width:23px!important;width:23px!important;height:23px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 23px!important}
+.cell-role,.cell-constraint,.manager-shift-label,.role-shift-label{display:none!important}
+.cell-menu-btn{display:none!important}
+
+/* Friday should match weekday density */
+.friday-panel,.friday-panel *{font-family:var(--os-final-font)!important}
+.friday-panel-time{font-size:15px!important;font-weight:700!important;line-height:1.1!important;display:flex!important;align-items:center!important;justify-content:center!important;min-width:100px!important;flex-basis:100px!important;padding:5px 6px!important}
+.friday-time-range{font-size:15px!important;font-weight:700!important;white-space:nowrap!important}
+.friday-panel-cell{padding:5px 6px!important;min-width:0!important}
+.friday-panel-cell .shift-cell{min-height:36px!important;padding:5px 8px!important;flex-wrap:nowrap!important}
+.friday-oncall-label,.friday-oncall-label *{font-family:var(--os-final-font)!important;font-size:15px!important;font-weight:700!important;white-space:nowrap!important}
+.friday-panel-empty{font-family:var(--os-final-font)!important;font-size:15px!important;font-weight:600!important}
+
+/* Checks readability */
+.checks-title,.checks-title *,.checks-table,.checks-table *,.checks-friday-panel,.checks-friday-panel *{font-family:var(--os-final-font)!important}
+.checks-table th,.checks-table th *{font-size:16px!important;font-weight:700!important}
+.checks-table .check-title,.checks-friday-panel .check-title{font-size:17px!important;font-weight:700!important;line-height:1.2!important}
+.checks-table .check-subtitle,.checks-friday-panel .check-subtitle{font-size:14px!important;font-weight:500!important;line-height:1.25!important}
+.check-emp-chip,.check-emp-chip2{font-size:16px!important;font-weight:700!important;min-height:36px!important;padding:5px 8px!important}
+.check-emp-chip .cell-name,.check-emp-chip2 .cell-name,.check-chip-name{font-size:17px!important;font-weight:700!important;white-space:nowrap!important}
+.check-empty-note{font-family:var(--os-final-font)!important;font-size:15px!important;font-weight:600!important}
+
+/* WFH summary */
+.wfh-summary-card,.wfh-summary-card *,.wfh-person-name,.wfh-person-role,.wfh-count-main,.wfh-count-sub,.wfh-summary-title,.wfh-summary-note,.wfh-metric-pill{font-family:var(--os-final-font)!important}
+.wfh-summary-title{font-size:19px!important;font-weight:700!important}
+.wfh-person-name{font-size:17px!important;font-weight:700!important;line-height:1.2!important}
+.wfh-person-role{font-size:14px!important;font-weight:500!important}
+.wfh-count-main{font-size:17px!important;font-weight:700!important}
+.wfh-count-sub,.wfh-summary-note{font-size:14px!important}
+.wfh-metric-pill{font-size:14px!important;font-weight:700!important}
+
+/* Add employee modal: fixed header, independent scroll, Arial */
+#modal-add-to-shift .modal{display:flex!important;flex-direction:column!important;max-height:88vh!important;overflow:hidden!important;padding:0!important}
+#modal-add-to-shift .modal-header{position:relative!important;top:auto!important;flex:0 0 auto!important;margin:0!important;padding:18px 20px 14px!important;background:var(--surface)!important;z-index:5!important;cursor:default!important}
+#modal-add-to-shift .modal-title{font-size:19px!important;font-weight:700!important}
+#modal-add-to-shift #add-shift-options{overflow-y:auto!important;overscroll-behavior:contain!important;min-height:0!important;flex:1 1 auto!important;padding:12px 20px 20px!important;font-family:var(--os-final-font)!important}
+#modal-add-to-shift .emp-item,#modal-add-to-shift .emp-item *{font-family:var(--os-final-font)!important}
+#modal-add-to-shift .emp-item{min-height:62px!important;align-items:center!important}
+#modal-add-to-shift .emp-item .os-add-name{font-size:17px!important;font-weight:700!important;line-height:1.2!important}
+#modal-add-to-shift .manual-warning-row{background:#fff7ed!important;border-color:#fdba74!important}
+#modal-add-to-shift .os-manual-reason{font-size:13px!important;color:#c2410c!important;font-weight:600!important;line-height:1.25!important;margin-top:3px!important}
+
+/* Constraints, Friday admin, misc dynamic text */
+.constraint-debug-list,.constraint-debug-list *,.constraint-matrix-table,.constraint-matrix-table *,.constraint-week-grid,.constraint-week-grid *,
+.friday-admin-table,.friday-admin-table *,.friday-toggle,.friday-toggle *,#hidden-constraints-tools-v1435,#hidden-constraints-tools-v1435 *{
+ font-family:var(--os-final-font)!important
+}
+.friday-toggle{font-size:14px!important;font-weight:700!important}
+.constraint-debug-row .btn{font-size:14px!important;padding:7px 12px!important}
+
+/* Holiday cells retain manual + */
+.os-holiday-blocked-cell{display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;flex-wrap:wrap!important;min-height:34px!important}
+.os-holiday-blocked-cell .holiday-cell{font-size:15px!important;font-weight:700!important;padding:6px 8px!important;margin:0!important}
+.os-holiday-manual-add{width:26px!important;height:26px!important;min-width:26px!important;border-radius:50%!important;font-size:18px!important;line-height:1!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}
+
+/* Export/image readability */
+body.sf-exporting .schedule-table thead th,body.exporting-image .schedule-table thead th{font-size:19px!important;font-family:var(--os-final-font)!important}
+body.sf-exporting .schedule-table th.row-header,body.exporting-image .schedule-table th.row-header{font-size:18px!important;font-family:var(--os-final-font)!important}
+body.sf-exporting .shift-cell .cell-name,body.exporting-image .shift-cell .cell-name{font-size:19px!important;font-weight:700!important}
+body.sf-exporting .cell-num,body.exporting-image .cell-num{width:28px!important;height:28px!important;min-width:28px!important;font-size:14px!important}
+body.sf-exporting .checks-table th,body.exporting-image .checks-table th{font-size:18px!important}
+body.sf-exporting .check-title,body.exporting-image .check-title{font-size:18px!important}
+body.sf-exporting .check-subtitle,body.exporting-image .check-subtitle{font-size:15px!important}
+body.sf-exporting .check-emp-chip .cell-name,body.sf-exporting .check-emp-chip2 .cell-name,
+body.exporting-image .check-emp-chip .cell-name,body.exporting-image .check-emp-chip2 .cell-name{font-size:18px!important}
+body.sf-exporting .check-empty-note,body.exporting-image .check-empty-note{font-size:16px!important}
+body.sf-exporting .friday-panel-time,body.exporting-image .friday-panel-time{font-size:16px!important}
+
+@media(max-width:1450px){
+ .schedule-table thead th{font-size:16px!important}
+ .shift-cell .cell-name{font-size:16px!important}
+ .cell-num{width:24px!important;height:24px!important;min-width:24px!important;font-size:12px!important}
+ .schedule-table td.time-col,.schedule-table td.time-col .shift-time-text,.friday-panel-time,.friday-time-range{font-size:14px!important}
+ .friday-panel-time{min-width:92px!important;flex-basis:92px!important}
+}
+
+/* OneShift 1.44.8 final readability/sizing */
+.shift-cell .cell-name,.check-emp-chip .cell-name,.check-emp-chip2 .cell-name,.wfh-person-name,#modal-add-to-shift .os-add-name{font-size:18px!important;font-weight:700!important}
+.shift-cell .cell-num,.check-emp-chip .cell-num,.check-emp-chip2 .cell-num{width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;font-size:13px!important;line-height:1!important;align-items:center!important;justify-content:center!important}
+.friday-panel-cell .shift-cell .cell-name{font-size:17px!important}
+.friday-panel-cell .shift-cell .cell-num{width:25px!important;height:25px!important;min-width:25px!important;min-height:25px!important}
+.schedule-table td.time-col,.friday-panel-time{align-content:center!important;vertical-align:middle!important}
+#hidden-constraints-tools-v1435 .btn{font-size:14px!important;padding:8px 13px!important}
+</style>
+<script id="oneshift-v1447-final-patch">
+(function(){
+'use strict';
+const VERSION='1.44.8';
+const q=s=>document.querySelector(s), qa=s=>Array.from(document.querySelectorAll(s));
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const employeesArr=()=>{try{return Array.isArray(employees)?employees:(window.employees||[])}catch(e){return window.employees||[]}};
+const shiftsArr=()=>{try{return Array.isArray(shifts)?shifts:(window.shifts||[])}catch(e){return window.shifts||[]}};
+const constraintsArr=()=>{try{return Array.isArray(constraints)?constraints:(window.constraints||[])}catch(e){return window.constraints||[]}};
+const holidaysArr=()=>{try{return Array.isArray(holidays)?holidays:(window.holidays||[])}catch(e){return window.holidays||[]}};
+const empById=id=>employeesArr().find(e=>String(e.id)===String(id));
+const tmin=t=>{try{return timeMin(t)}catch(e){const m=String(t||'0:0').match(/(\d{1,2}):(\d{2})/);return m?(+m[1]*60 + +m[2]):0}};
+function setFinalVersion(){
+  try{window.APP_VERSION=VERSION;window.APP_CHANNEL='stable'}catch(e){}
+  const a=q('#login-version-label');if(a)a.textContent=VERSION;
+  const b=q('#version-footer');if(b)b.textContent='גרסה '+VERSION;
+  qa('.candidate-pill').forEach(x=>x.remove());
+  qa('a,button,span').forEach(x=>{if((x.textContent||'').trim()==='גרסת בדיקה')x.remove()});
+  qa('.version-switcher,.version-channel-switcher').forEach(x=>x.style.display='none');
+}
+function removeBackHome(){qa('button').forEach(b=>{if((b.textContent||'').includes('חזור לבית'))b.remove()})}
+function cfg(){try{return settings||window.settings||{}}catch(e){return window.settings||{}}}
+function migrateRoleLabels(){
+  const s=cfg();if(!s)return;
+  if(!s.managerPrimaryLabel||s.managerPrimaryLabel==='אחמ״ש ראשי')s.managerPrimaryLabel='א.ראשי';
+  if(!s.managerSecondaryLabel||s.managerSecondaryLabel==='אחמ״ש משני')s.managerSecondaryLabel='א.משני';
+  if(!s.managerGenericLabel)s.managerGenericLabel='אחמ״ש';
+  if(!s.seniorRoleLabel)s.seniorRoleLabel='תמיכה בכירה';
+  try{localStorage.setItem('sf_settings',JSON.stringify(s))}catch(e){}
+}
+function roleLabel(emp,start,day){
+  const s=cfg();
+  if(emp?.isManager){
+    if(Number(day)<=4&&String(start)==='07:30')return String(s.managerPrimaryLabel||'א.ראשי');
+    if(Number(day)<=4&&String(start)==='09:00')return String(s.managerSecondaryLabel||'א.משני');
+    return String(s.managerGenericLabel||'אחמ״ש');
+  }
+  if(emp?.isSenior)return String(s.seniorRoleLabel||'תמיכה בכירה');
+  return '';
+}
+function finalBuildShiftCell(emp,shiftStart,dayOfWeek,weekIdx,isWFH){
+  const role=roleLabel(emp,shiftStart,dayOfWeek);
+  const fullName=(emp?.name||'')+(role?' - '+role:'');
+  return `<div class="shift-cell ${isWFH?'wfh-cell':''} ${emp?.isManager?'role-manager':emp?.isSenior?'role-senior':''}"
+    draggable="true" data-emp="${esc(emp?.id)}" data-shift="${esc(shiftStart)}" data-day="${esc(dayOfWeek)}" data-week="${esc(weekIdx)}"
+    ondragstart="startDrag(event)" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondrop="dropOnCell(event)" oncontextmenu="showCtx(event,${Number(emp?.id)},'${esc(shiftStart)}',${Number(dayOfWeek)},${Number(weekIdx)})">
+    <div class="cell-num" style="background:${esc(emp?.color||'#4f63d2')}">${esc(emp?.employeeNumber||'')}</div>
+    <span class="cell-name" title="${esc(fullName)}">${esc(fullName)}</span>
+    ${isWFH?'<span class="cell-wfh" title="ע.מהבית">🏠</span>':''}
+  </div>`;
+}
+window.buildShiftCell=finalBuildShiftCell;try{buildShiftCell=finalBuildShiftCell}catch(e){}
+
+function ensureRoleSettings(){
+  migrateRoleLabels();
+  const sec=q('#os-advanced-settings');if(!sec)return;
+  let box=q('#os-role-label-settings');
+  if(!box){
+    box=document.createElement('div');box.id='os-role-label-settings';box.innerHTML=`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)"><div style="font-weight:700;margin-bottom:9px">טקסט תפקיד ליד שם העובד בשיבוץ</div><div class="form-row triple"><div class="field"><label>אחמ״ש 07:30</label><input type="text" id="os-set-manager-primary-label"></div><div class="field"><label>אחמ״ש 09:00</label><input type="text" id="os-set-manager-secondary-label"></div><div class="field"><label>אחמ״ש במשמרת ידנית אחרת</label><input type="text" id="os-set-manager-generic-label"></div></div><div class="form-row single"><div class="field"><label>תומך בכיר</label><input type="text" id="os-set-senior-role-label"></div></div></div>`;
+    sec.appendChild(box);
+  }
+  const s=cfg();[['os-set-manager-primary-label',s.managerPrimaryLabel||'א.ראשי'],['os-set-manager-secondary-label',s.managerSecondaryLabel||'א.משני'],['os-set-manager-generic-label',s.managerGenericLabel||'אחמ״ש'],['os-set-senior-role-label',s.seniorRoleLabel||'תמיכה בכירה']].forEach(([id,v])=>{const el=q('#'+id);if(el&&document.activeElement!==el)el.value=v});
+}
+function readRoleSettings(){
+  const s=cfg();if(!s)return;
+  const p=q('#os-set-manager-primary-label')?.value.trim(),m=q('#os-set-manager-secondary-label')?.value.trim(),g=q('#os-set-manager-generic-label')?.value.trim(),sr=q('#os-set-senior-role-label')?.value.trim();
+  if(p)s.managerPrimaryLabel=p;if(m)s.managerSecondaryLabel=m;if(g)s.managerGenericLabel=g;if(sr)s.seniorRoleLabel=sr;
+  try{localStorage.setItem('sf_settings',JSON.stringify(s))}catch(e){}
+  try{const r=saveData?.();if(r?.catch)r.catch(()=>{})}catch(e){}
+}
+const priorSaveSettings=window.saveSettings;
+if(typeof priorSaveSettings==='function'){
+  const fn=function(){
+    const vals={p:q('#os-set-manager-primary-label')?.value,m:q('#os-set-manager-secondary-label')?.value,g:q('#os-set-manager-generic-label')?.value,s:q('#os-set-senior-role-label')?.value};
+    const r=priorSaveSettings.apply(this,arguments);
+    const st=cfg();if(vals.p?.trim())st.managerPrimaryLabel=vals.p.trim();if(vals.m?.trim())st.managerSecondaryLabel=vals.m.trim();if(vals.g?.trim())st.managerGenericLabel=vals.g.trim();if(vals.s?.trim())st.seniorRoleLabel=vals.s.trim();
+    try{localStorage.setItem('sf_settings',JSON.stringify(st));saveData?.()}catch(e){}
+    requestAnimationFrame(()=>{try{renderSchedule?.(true)}catch(e){};ensureRoleSettings()});
+    return r;
+  };window.saveSettings=fn;try{saveSettings=fn}catch(e){}
+}
+
+function dayObj(weekIdx,dayOfWeek){return currentSchedule?.weekGroups?.[weekIdx]?.days?.find(d=>Number(d.dayOfWeek)===Number(dayOfWeek))||null}
+function shiftDef(start,day){return shiftsArr().find(s=>String(s.start)===String(start)&&(!Array.isArray(s.activeDays)||s.activeDays.map(Number).includes(Number(day))))||shiftsArr().find(s=>String(s.start)===String(start))||null}
+function shiftCap(sa,day){const d=shiftDef(sa?.start,day);if(!d)return Infinity;const min=Math.max(0,Number(d.minCoverage??d.required??0)||0),mx=Math.max(0,Number(d.maxCoverage||0)||0);if(!d.allowOverfill)return min>0?min:Infinity;return mx>0?Math.max(min,mx):Infinity}
+function roleCount(sa,role,exclude){return (sa?.employees||[]).filter(a=>String(a.employeeId)!==String(exclude??'__none__')).filter(a=>{const e=empById(a.employeeId);return role==='manager'?e?.isManager:role==='senior'?e?.isSenior&&!e?.isManager:false}).length}
+function roleCapOk(emp,sa,exclude){if(!emp)return false;if(emp.isManager&&roleCount(sa,'manager',exclude)>=1)return false;if(emp.isSenior&&!emp.isManager&&roleCount(sa,'senior',exclude)>=1)return false;return true}
+function blockedByHoliday(day,start,end){try{return !!(day?.holiday&&isShiftBlockedByHoliday(day.holiday,start,end))}catch(e){return false}}
+function manualReasons(emp,day,start,end){
+  const out=[];if(!emp||!day)return out;
+  if(blockedByHoliday(day,start,end))out.push('חג/שעות חסומות — שיבוץ ידני בלבד');
+  try{if(employeeBlockedForShift(emp.id,day.dayOfWeek,day.dateStr,start,end))out.push('אילוץ חסימה')}catch(e){}
+  try{if(getAbsenceForEmployeeDate(emp.id,day.dateStr))out.push('חופש/היעדרות')}catch(e){}
+  if(emp.isNewEmployee)out.push('עובד חדש');
+  if(Number(day.dayOfWeek)!==5&&emp.isManager&&!['07:30','09:00'].includes(String(start)))out.push('לא משמרת אחמ״ש אוטומטית');
+  if(Number(day.dayOfWeek)!==5&&emp.isSenior&&!emp.isManager&&!['07:15','09:30'].includes(String(start)))out.push('לא משמרת בכיר אוטומטית');
+  if(Number(day.dayOfWeek)===5&&emp.avoidFriday)out.push('ביקש לא לעבוד שישי');
+  return out;
+}
+function renderOnce(){
+  try{renderSchedule?.(true)}catch(e){console.error('render schedule',e)}
+  try{persistCurrentSchedule?.()}catch(e){}
+}
+window.performSwap=function(emp1Id,shift1,day1,emp2Id,shift2,day2,weekIdx){
+  if(String(emp1Id)===String(emp2Id)&&String(shift1)===String(shift2)&&Number(day1)===Number(day2))return;
+  const wg=currentSchedule?.weekGroups?.[weekIdx],d1=wg?.days?.find(d=>Number(d.dayOfWeek)===Number(day1)),d2=wg?.days?.find(d=>Number(d.dayOfWeek)===Number(day2));if(!d1||!d2)return;
+  const sa1=d1.shiftAssignments?.find(s=>String(s.start)===String(shift1)),sa2=d2.shiftAssignments?.find(s=>String(s.start)===String(shift2));if(!sa1||!sa2)return;
+  const i1=(sa1.employees||[]).findIndex(a=>String(a.employeeId)===String(emp1Id)),i2=(sa2.employees||[]).findIndex(a=>String(a.employeeId)===String(emp2Id));if(i1<0||i2<0)return;
+  const e1=empById(emp1Id),e2=empById(emp2Id);if(!roleCapOk(e1,sa2,emp2Id)||!roleCapOk(e2,sa1,emp1Id)){toast('לא ניתן ליצור שני אחמ״שים או שני תומכים בכירים באותה משמרת.','error');return}
+  const warnings=[...manualReasons(e1,d2,sa2.start,sa2.end),...manualReasons(e2,d1,sa1.start,sa1.end)];if(warnings.length&&!confirm('ההחלפה כוללת חריגה ידנית:\n'+[...new Set(warnings)].join('\n')+'\n\nלהמשיך?'))return;
+  const a1={...sa1.employees[i1],manualTouched:true},a2={...sa2.employees[i2],manualTouched:true};sa1.employees[i1]=a2;sa2.employees[i2]=a1;renderOnce();toast('✅ ההחלפה בוצעה');
+};try{performSwap=window.performSwap}catch(e){}
+window.moveEmpToSlot=function(empId,fromShift,fromDay,toShift,toDay,weekIdx){
+  const wg=currentSchedule?.weekGroups?.[weekIdx],fd=wg?.days?.find(d=>Number(d.dayOfWeek)===Number(fromDay)),td=wg?.days?.find(d=>Number(d.dayOfWeek)===Number(toDay));if(!fd||!td)return;
+  const from=fd.shiftAssignments?.find(s=>String(s.start)===String(fromShift));if(!from)return;const idx=(from.employees||[]).findIndex(a=>String(a.employeeId)===String(empId));if(idx<0)return;
+  let to=td.shiftAssignments?.find(s=>String(s.start)===String(toShift));if(!to){const def=shiftDef(toShift,toDay);to={shiftId:def?.id||Date.now(),start:toShift,end:def?.end||'',isWFH:!!def?.isWFH,employees:[]};td.shiftAssignments=td.shiftAssignments||[];td.shiftAssignments.push(to)}
+  const emp=empById(empId);if(!roleCapOk(emp,to,null)){toast(emp?.isManager?'לא ניתן לשבץ שני אחמ״שים באותה משמרת.':'לא ניתן לשבץ שני תומכים בכירים באותה משמרת.','error');return}if((to.employees||[]).length>=shiftCap(to,toDay)){toast('המשמרת הגיעה למקסימום העובדים שהוגדר.','error');return}
+  const rs=manualReasons(emp,td,to.start,to.end);if(rs.length&&!confirm(emp.name+': '+rs.join(' | ')+'\nלהעביר בכל זאת?'))return;
+  const [a]=from.employees.splice(idx,1);a.manualTouched=true;to.employees.push(a);renderOnce();toast('✅ עובד הועבר');
+};try{moveEmpToSlot=window.moveEmpToSlot}catch(e){}
+
+function buildAddRow(emp,day,start,end){const reasons=manualReasons(emp,day,start,end);return `<div class="emp-item ${reasons.length?'manual-warning-row':''}" style="cursor:pointer;margin-bottom:8px" onclick="toggleAddToShiftSelect(${Number(emp.id)})" id="add-shift-row-${Number(emp.id)}"><input type="checkbox" style="width:19px;height:19px;cursor:pointer;pointer-events:none" id="add-shift-cb-${Number(emp.id)}"><div class="emp-avatar" style="background:${esc(emp.color||'#4f63d2')}">${esc(emp.employeeNumber||'')}</div><div style="flex:1;min-width:0"><div class="os-add-name">${esc(emp.name)}</div><div style="font-size:13px;color:var(--text3)">${esc(emp.isManager?'אחמ״ש':emp.isSenior?'תומך בכיר':'תומך')}</div>${reasons.length?`<div class="os-manual-reason">⚠ ${esc(reasons.join(' | '))}</div>`:''}</div></div>`}
+window.openAddToShift=function(shiftStart,dayOfWeek,weekIdx){
+  addToShiftContext={shiftStart,dayOfWeek,weekIdx};window.addToShiftContext=addToShiftContext;addToShiftSelected=new Set();window.addToShiftSelected=addToShiftSelected;
+  const day=dayObj(weekIdx,dayOfWeek);if(!day)return;const already=new Set();(day.shiftAssignments||[]).forEach(sa=>(sa.employees||[]).forEach(a=>already.add(String(a.employeeId))));const def=shiftDef(shiftStart,dayOfWeek);const pool=employeesArr().filter(e=>!already.has(String(e.id)));
+  const host=q('#add-shift-options');if(!host)return;host.innerHTML=`<div style="margin-bottom:10px;font-size:14px;color:var(--text2);font-weight:600">${esc(DAYS_HE?.[dayOfWeek]||'')} ${esc(day.dateStr||'')} | ${esc(shiftStart)}-${esc(def?.end||'')}</div><div class="btn-row" style="margin:0 0 10px"><button class="btn btn-ghost btn-sm" onclick="selectAllAddToShift(true)">בחר הכל</button><button class="btn btn-ghost btn-sm" onclick="selectAllAddToShift(false)">בטל בחירה</button></div><div class="emp-list" id="add-shift-emp-list">${pool.length?pool.map(e=>buildAddRow(e,day,shiftStart,def?.end||'')).join(''):'<div class="empty-state">כל העובדים כבר משובצים ביום זה</div>'}</div><div class="btn-row" style="position:sticky;bottom:0;background:var(--surface);padding-top:10px"><button class="btn btn-primary" onclick="confirmAddToShift()">+ הוסף נבחרים</button></div>`;openModal('modal-add-to-shift');
+};try{openAddToShift=window.openAddToShift}catch(e){}
+window.confirmAddToShift=function(){
+  const c=window.addToShiftContext||addToShiftContext,sel=window.addToShiftSelected||addToShiftSelected;if(!c||!sel?.size){toast('לא נבחרו עובדים','error');return}const day=dayObj(c.weekIdx,c.dayOfWeek);if(!day)return;let sa=(day.shiftAssignments||[]).find(s=>String(s.start)===String(c.shiftStart));if(!sa){const d=shiftDef(c.shiftStart,c.dayOfWeek);sa={shiftId:d?.id||Date.now(),start:c.shiftStart,end:d?.end||'',isWFH:!!d?.isWFH,employees:[]};day.shiftAssignments=day.shiftAssignments||[];day.shiftAssignments.push(sa)}
+  const ids=Array.from(sel);let mgr=roleCount(sa,'manager'),sen=roleCount(sa,'senior'),fresh=0;for(const id of ids){if((sa.employees||[]).some(a=>String(a.employeeId)===String(id)))continue;const e=empById(id);if(e?.isManager)mgr++;else if(e?.isSenior)sen++;fresh++}if(mgr>1){toast('לא ניתן לשבץ שני אחמ״שים באותה משמרת.','error');return}if(sen>1){toast('לא ניתן לשבץ שני תומכים בכירים באותה משמרת.','error');return}if((sa.employees||[]).length+fresh>shiftCap(sa,c.dayOfWeek)){toast('המשמרת הגיעה למקסימום העובדים שהוגדר.','error');return}
+  const reasons=[];ids.forEach(id=>{const e=empById(id);manualReasons(e,day,sa.start,sa.end).forEach(r=>reasons.push(`${e?.name||id}: ${r}`))});if(reasons.length&&!confirm('יש חריגות לשיבוץ ידני:\n\n'+reasons.slice(0,20).join('\n')+'\n\nלהמשיך?'))return;
+  let added=0;ids.forEach(id=>{if(!(sa.employees||[]).some(a=>String(a.employeeId)===String(id))){sa.employees.push({employeeId:id,isWFH:!!(sa.isWFH||Number(c.dayOfWeek)===5),manualTouched:true,constraintOverride:manualReasons(empById(id),day,sa.start,sa.end).length>0});added++}});closeModal('modal-add-to-shift');addToShiftSelected=new Set();window.addToShiftSelected=addToShiftSelected;renderOnce();toast(`✅ ${added} עובדים נוספו למשמרת`);
+};try{confirmAddToShift=window.confirmAddToShift}catch(e){}
+
+window.setAssignmentOfficeHomeV1447=function(empId,shiftStart,dayOfWeek,weekIdx,wfh){const day=dayObj(weekIdx,dayOfWeek),sa=day?.shiftAssignments?.find(s=>String(s.start)===String(shiftStart)),a=sa?.employees?.find(x=>String(x.employeeId)===String(empId));if(!a)return;a.isWFH=!!wfh;a.wfhOverride=wfh?undefined:false;a.manualTouched=true;renderOnce();toast(wfh?'🏠 הוגדר ע.מהבית':'🏢 הוגדר משרד')}
+window.showCtx=function(event,empId,shiftStart,dayOfWeek,weekIdx){event.preventDefault();event.stopPropagation();const emp=empById(empId),menu=q('#ctx-menu');if(!menu)return;menu.innerHTML=`<div class="ctx-header">${esc(emp?.name||'')}</div><div class="ctx-item" onclick="closeCtxMenu();openSwapModal(${Number(empId)},'${esc(shiftStart)}',${Number(dayOfWeek)},${Number(weekIdx)})">🔄 החלף עם עובד אחר</div><div class="ctx-item" onclick="closeCtxMenu();setAssignmentOfficeHomeV1447(${Number(empId)},'${esc(shiftStart)}',${Number(dayOfWeek)},${Number(weekIdx)},true)">🏠 עבודה מהבית</div><div class="ctx-item" onclick="closeCtxMenu();setAssignmentOfficeHomeV1447(${Number(empId)},'${esc(shiftStart)}',${Number(dayOfWeek)},${Number(weekIdx)},false)">🏢 עבודה מהמשרד</div><div class="ctx-divider"></div><div class="ctx-item" onclick="closeCtxMenu();openEditEmployee(${Number(empId)})">✏️ ערוך פרטי עובד</div><div class="ctx-item" onclick="closeCtxMenu();removeFromShift(${Number(empId)},'${esc(shiftStart)}',${Number(dayOfWeek)},${Number(weekIdx)})">❌ הסר ממשמרת זו</div><div class="ctx-item danger" onclick="closeCtxMenu();removeFromAllShiftsThisWeek(${Number(empId)},${Number(weekIdx)})">🗑️ הסר מכל השבוע</div>`;placeCtxMenu(event,menu)};try{showCtx=window.showCtx}catch(e){}
+
+function holidayLabel(h){if(!h)return'';const name=String(h.name||'חג');if(h.type==='eve')return `🎉 ${name} — עובדים עד ${h.eveUntil||'13:30'}`;if(h.kind==='block'&&h.blockFrom)return `🎉 ${name} — חסום ${h.blockFrom}-${h.blockTo||'סוף יום'}`;return `🎉 ${name}`}
+function finalBuildScheduleCellContent(day,shiftStart,weekIdx){
+  const sa=(day.shiftAssignments||[]).find(s=>String(s.start)===String(shiftStart)),def=shiftDef(shiftStart,day.dayOfWeek),blocked=blockedByHoliday(day,shiftStart,sa?.end||def?.end||'');let out='';
+  if(blocked)out+=`<div class="holiday-cell">${esc(holidayLabel(day.holiday))}</div>`;
+  if(sa?.employees?.length)out+=(sa.employees||[]).map(a=>{const e=empById(a.employeeId);if(!e)return'';let w=false;try{w=isAssignmentWFH(a,sa,day)}catch(err){w=!!(a.isWFH||sa.isWFH||day.dayOfWeek===5)}return finalBuildShiftCell(e,shiftStart,day.dayOfWeek,weekIdx,w)}).join('');
+  let __hideAdd=false;try{__hideAdd=typeof areAddButtonsHidden==='function'?!!areAddButtonsHidden():false}catch(e){__hideAdd=false}if(!__hideAdd)out+=`<button class="mini-add-btn os-holiday-manual-add" title="הוסף עובד ידנית" onclick="openAddToShift('${esc(shiftStart)}',${Number(day.dayOfWeek)},${Number(weekIdx)})">+</button>`;
+  if(!out)out='<div style="min-height:26px;color:var(--text3);text-align:center">—</div>';return blocked?`<div class="os-holiday-blocked-cell">${out}</div>`:out;
+}
+function finalBuildScheduleCell(day,shiftStart,weekIdx){return `<td ondragover="event.preventDefault()" ondrop="dropOnZone(event,'${esc(shiftStart)}',${Number(day.dayOfWeek)},${Number(weekIdx)})">${finalBuildScheduleCellContent(day,shiftStart,weekIdx)}</td>`}
+window.buildScheduleCellContent=finalBuildScheduleCellContent;window.buildScheduleCell=finalBuildScheduleCell;try{buildScheduleCellContent=finalBuildScheduleCellContent;buildScheduleCell=finalBuildScheduleCell}catch(e){}
+
+function activeOnDay(s,d){return Array.isArray(s?.activeDays)?s.activeDays.map(Number).includes(Number(d)):Number(d)<=4}
+function ensureShiftPlaceholders(schedule){if(!schedule?.weekGroups)return;for(const wg of schedule.weekGroups)for(const day of (wg.days||[])){if(Number(day.dayOfWeek)>5)continue;day.shiftAssignments=day.shiftAssignments||[];for(const def of shiftsArr().filter(s=>activeOnDay(s,day.dayOfWeek))){if(!day.shiftAssignments.some(sa=>String(sa.start)===String(def.start)))day.shiftAssignments.push({shiftId:def.id,start:def.start,end:def.end,isWFH:!!def.isWFH,employees:[]})}day.shiftAssignments.sort((a,b)=>tmin(a.start)-tmin(b.start))}}
+function FridayGap(e,wk){try{return fridayWeeksSince(e,wk)}catch(err){return 99}}
+function fillFridayMinimums(schedule){if(!schedule?.weekGroups)return;for(const wg of schedule.weekGroups){const fri=(wg.days||[]).find(d=>Number(d.dayOfWeek)===5);if(!fri||blockedByHoliday(fri,'00:00','23:59'))continue;const used=new Set();(fri.shiftAssignments||[]).forEach(sa=>(sa.employees||[]).forEach(a=>used.add(String(a.employeeId))));for(const sa of (fri.shiftAssignments||[]).sort((a,b)=>tmin(a.start)-tmin(b.start))){const def=shiftDef(sa.start,5);const target=Math.max(0,Number(def?.minCoverage??def?.required??0)||0);if((sa.employees||[]).length>=target)continue;let mgr=roleCount(sa,'manager'),sen=roleCount(sa,'senior');const pool=employeesArr().filter(e=>!used.has(String(e.id))&&!e.isNewEmployee).sort((a,b)=>{const af=a.fixedFriday?-10000:0,bf=b.fixedFriday?-10000:0;if(af!==bf)return af-bf;const aw=a.wantsFriday?-5000:0,bw=b.wantsFriday?-5000:0;if(aw!==bw)return aw-bw;const av=a.avoidFriday?3000:0,bv=b.avoidFriday?3000:0;if(av!==bv)return av-bv;return FridayGap(b,wg.weekKey)-FridayGap(a,wg.weekKey)});for(const e of pool){if((sa.employees||[]).length>=target)break;if(e.isManager&&mgr>=1)continue;if(e.isSenior&&!e.isManager&&sen>=1)continue;try{if(getAbsenceForEmployeeDate(e.id,fri.dateStr))continue}catch(err){}const blocked=(()=>{try{return employeeBlockedForShift(e.id,5,fri.dateStr,sa.start,sa.end)}catch(err){return false}})();sa.employees.push({employeeId:e.id,isWFH:true,constraintOverride:blocked||!!e.avoidFriday,manualTouched:false});used.add(String(e.id));if(e.isManager)mgr++;else if(e.isSenior)sen++;}}
+}}
+function normalizeSukkotForGeneration(){
+  const cutoff=String(cfg().sukkotCholHamoedUntil||'13:30');
+  for(const h of holidaysArr()){
+    const n=String(h?.name||'');
+    if(/חול\s*המועד\s*סוכות|Chol\s*HaMoed\s*Sukkot|Sukkot.*CH.?M/i.test(n)){
+      h.name='חול המועד סוכות'; h.type='eve'; h.eveUntil=cutoff; delete h.kind; delete h.blockFrom; delete h.blockTo;
+    }
+  }
+}
+function safePersistAll(){
+  try{const r=saveData?.();if(r?.catch)r.catch(e=>console.warn('saveData',e))}catch(e){console.warn('saveData',e)}
+  try{const r=persistCurrentSchedule?.();if(r?.catch)r.catch(e=>console.warn('persist schedule',e))}catch(e){console.warn('persist schedule',e)}
+}
+window.generateSchedule=function(){
+  if(window.__osGeneratingFinal)return;
+  window.__osGeneratingFinal=true;
+  const btns=qa('button[onclick*="generateSchedule"],button[onclick*="generateHomeScheduleV1431"]');
+  btns.forEach(b=>{b.dataset.osWasDisabled=b.disabled?'1':'0';b.disabled=true});
+  try{
+    if(!employeesArr().length){toast('נא להוסיף עובדים','error');return}
+    if(!shiftsArr().length){toast('נא להוסיף משמרות','error');return}
+    const v=q('#sch-start')?.value||q('#home-sch-start')?.value;
+    if(!v){toast('בחר תאריך','error');return}
+    const start=new Date(v+'T12:00:00');
+    if(start.getDay()!==0){toast('תאריך ההתחלה חייב להיות יום ראשון','error');return}
+    const weeks=+(q('#sch-weeks')?.value||1)||1;
+    normalizeSukkotForGeneration();
+    try{archiveSchedule?.(currentSchedule)}catch(e){}
+    const snap=JSON.parse(JSON.stringify(employeesArr()));
+    currentSchedule=buildSchedule(start,weeks,snap);
+    ensureShiftPlaceholders(currentSchedule);
+    fillFridayMinimums(currentSchedule);
+    // Persist Friday rotation history produced by the scheduler.
+    snap.forEach(s=>{const real=employeesArr().find(e=>String(e.id)===String(s.id));if(real)real.fridayHistory=[...new Set([...(real.fridayHistory||[]),...(s.fridayHistory||[])])]});
+    // One render only. renderSchedule itself refreshes Home, attendance and coverage.
+    renderSchedule?.(true);
+    safePersistAll();
+    toast('✅ השיבוץ נוצר בהצלחה');
+  }catch(err){
+    console.error('OneShift generation recovered',err);
+    try{toast('❌ אירעה שגיאה ביצירת השיבוץ. המערכת נשארה פעילה ולא נמחקו הנתונים.','error')}catch(e){}
+  }finally{
+    window.__osGeneratingFinal=false;
+    btns.forEach(b=>{b.disabled=b.dataset.osWasDisabled==='1';delete b.dataset.osWasDisabled});
+  }
+};try{generateSchedule=window.generateSchedule}catch(e){}
+
+
+function dateToDay(ds){for(const wg of (currentSchedule?.weekGroups||[])){const d=(wg.days||[]).find(x=>x.dateStr===ds);if(d)return d}return null}
+function parseIssueDate(text){const s=String(text||'');let m=s.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);if(m)return`${m[1]}-${m[2]}-${m[3]}`;m=s.match(/\b(\d{1,2})[.\/](\d{1,2})[.\/](\d{2}|20\d{2})\b/);if(m){let y=m[3];if(y.length===2)y='20'+y;return`${y}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`}return''}
+function parseIssueShift(text){const m=String(text||'').match(/\b(\d{2}:\d{2})-(\d{2}:\d{2})\b/);return m?{start:m[1],end:m[2]}:null}
+function holidayCoversIssue(text){const ds=parseIssueDate(text);if(!ds)return false;const day=dateToDay(ds);if(!day?.holiday)return false;const st=parseIssueShift(text);if(st)return blockedByHoliday(day,st.start,st.end);if(day.holiday.type==='full')return true;if(day.holiday.kind==='block'&&!day.holiday.blockFrom)return true;return false}
+window.renderConstraintConflictReportV1431=function(forceOpen){const targets=[q('#home-conflict-report'),q('#schedule-conflict-report')].filter(Boolean);if(!currentSchedule){targets.forEach(t=>t.innerHTML='');return[]}const issues=[];
+ const dates=new Set();(currentSchedule.weekGroups||[]).forEach(w=>(w.days||[]).forEach(d=>dates.add(d.dateStr)));
+ for(const c of constraintsArr().filter(c=>c.specificDate&&dates.has(c.specificDate))){const day=dateToDay(c.specificDate);if(day?.holiday){if(c.shiftStart&&blockedByHoliday(day,c.shiftStart,c.shiftEnd||shiftDef(c.shiftStart,day.dayOfWeek)?.end||c.shiftStart))continue;if(!c.shiftStart&&(day.holiday.type==='full'||(day.holiday.kind==='block'&&!day.holiday.blockFrom)))continue}const ass=[];(day?.shiftAssignments||[]).forEach(sa=>(sa.employees||[]).forEach(a=>{if(String(a.employeeId)===String(c.employeeId))ass.push({sa,a})}));if(c.blockDay&&ass.some(x=>!c.shiftStart||x.sa.start===c.shiftStart))issues.push({level:'bad',text:`אילוץ לא כובד: ${c.employeeName||empById(c.employeeId)?.name||'עובד'} חסום ב-${c.specificDate} אך שובץ.`});if((c.mustWork||c.wfhRequired)&&!ass.some(x=>!c.shiftStart||x.sa.start===c.shiftStart))issues.push({level:'warn',text:`אילוץ לא שובץ: ${c.employeeName||empById(c.employeeId)?.name||'עובד'} ביקש ${c.wfhRequired?'ע.מהבית':'לעבוד'} ב-${c.specificDate}${c.shiftStart?' '+c.shiftStart:''}.`})}
+ for(const wg of (currentSchedule.weekGroups||[]))for(const day of (wg.days||[]))for(const sa of (day.shiftAssignments||[])){if(blockedByHoliday(day,sa.start,sa.end))continue;const def=shiftDef(sa.start,day.dayOfWeek);const min=Math.max(0,Number(def?.minCoverage??def?.required??0)||0);const n=(sa.employees||[]).length;if(min&&n<min)issues.push({level:'bad',text:`חוסר במשמרת: ${day.dayName} ${day.dateStr} ${sa.start}-${sa.end} — יש ${n}, חובה ${min}.`});for(const a of (sa.employees||[]).filter(a=>a.constraintOverride)){const e=empById(a.employeeId);issues.push({level:'warn',text:`${e?.name||'עובד'} שובץ למרות אילוץ כדי לשמור על מינימום (${day.dateStr} ${sa.start}-${sa.end}).`})}}
+ const html=issues.length?issues.map(x=>`<div class="conflict-item ${x.level}"><span>${x.level==='bad'?'⛔':'⚠️'}</span><span>${esc(x.text)}</span></div>`).join(''):'<div class="conflict-item ok">✅ לא נמצאו התנגשויות או חוסרים אמיתיים.</div>';targets.forEach(t=>{if(!t)return;if(forceOpen||issues.length)t.innerHTML=`<div class="conflict-report-card"><div class="card-title">🔎 דוח אילוצים והתנגשויות</div><div class="conflict-list">${html}</div></div>`;else t.innerHTML=''});return issues
+};try{renderConstraintConflictReportV1431=window.renderConstraintConflictReportV1431}catch(e){}
+
+function patchConstraintMatrixHoliday(){const table=q('#constraint-matrix-v1432 .constraint-matrix-table');if(!table)return;const heads=qa('#constraint-matrix-v1432 thead th').slice(1),dates=heads.map(th=>{const m=th.textContent.match(/(\d{1,2})\.(\d{1,2})\.(\d{2,4})/);if(!m)return'';let y=m[3];if(y.length===2)y='20'+y;return`${y}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`});qa('#constraint-matrix-v1432 tbody tr').forEach(tr=>{const first=tr.children[0]?.textContent||'',num=(first.match(/#(\d+)/)||[])[1],emp=employeesArr().find(e=>String(e.employeeNumber)===String(num));Array.from(tr.children).slice(1).forEach((td,i)=>{const ds=dates[i],day=dateToDay(ds);if(!emp||!day?.holiday)return;const rel=constraintsArr().filter(c=>String(c.employeeId)===String(emp.id)&&((c.specificDate&&c.specificDate===ds)||(!c.specificDate&&Number(c.day)===Number(day.dayOfWeek))));const holidayRequest=rel.some(c=>(c.mustWork||c.wfhRequired)&&((c.shiftStart&&blockedByHoliday(day,c.shiftStart,c.shiftEnd||shiftDef(c.shiftStart,day.dayOfWeek)?.end||c.shiftStart))||(!c.shiftStart&&(day.holiday.type==='full'||(day.holiday.kind==='block'&&!day.holiday.blockFrom)))));if(holidayRequest){td.innerHTML='<span class="constraint-chip holiday">חג – אין שיבוץ נדרש</span>';td.classList.add('holiday-day-cell')}})})}
+const priorMatrix=window.renderConstraintMatrixV1432;if(typeof priorMatrix==='function'){window.renderConstraintMatrixV1432=function(){const r=priorMatrix.apply(this,arguments);requestAnimationFrame(patchConstraintMatrixHoliday);return r}}
+
+function clearWeekDates(){const vals=[q('#home-sch-start')?.value,q('#sch-start')?.value,q('#home-week')?.value];let start=vals.find(v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||'')))||'';if(!start&&currentSchedule?.weekGroups?.[0]?.weekStart){const d=new Date(currentSchedule.weekGroups[0].weekStart);if(!isNaN(d))start=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}if(!start)return[];const d=new Date(start+'T12:00:00');if(isNaN(d))return[];d.setDate(d.getDate()-d.getDay());return[0,1,2,3,4,5].map(i=>{const x=new Date(d);x.setDate(d.getDate()+i);return [x.getFullYear(),String(x.getMonth()+1).padStart(2,'0'),String(x.getDate()).padStart(2,'0')].join('-')})}
+window.clearEmployeeConstraintsV1435=function(mode){const val=q('#hidden-con-emp')?.value;if(!val){toast('בחר עובד','error');return}const ids=val==='__all__'?new Set(employeesArr().map(e=>String(e.id))):new Set([String(val)]),dates=clearWeekDates(),before=constraintsArr().length;const keep=constraintsArr().filter(c=>{if(!ids.has(String(c.employeeId)))return true;if(mode==='all')return false;if(mode==='permanent')return !!c.specificDate||!!c.dateFrom;if(mode==='week'){if(c.specificDate)return !dates.includes(c.specificDate);if(c.dateFrom&&c.dateTo)return !dates.some(ds=>ds>=c.dateFrom&&ds<=c.dateTo);return true}return true});try{constraints=keep;window.constraints=constraints}catch(e){window.constraints=keep}try{saveData?.()}catch(e){};try{renderConstraints?.();renderHiddenConstraintsPanelV1435?.();renderConstraintMatrixV1432?.()}catch(e){}toast(`נמחקו ${before-keep.length} אילוצים`)};
+
+function stripMoon(){qa('.schedule-table thead th,.friday-panel-header').forEach(el=>{for(const n of Array.from(el.childNodes)){if(n.nodeType===3&&n.nodeValue?.includes('🌙'))n.nodeValue=n.nodeValue.replaceAll('🌙','')}el.querySelectorAll('*').forEach(x=>{if(x.childNodes.length===1&&x.firstChild?.nodeType===3&&x.textContent.includes('🌙'))x.textContent=x.textContent.replaceAll('🌙','')})})}
+function normalizeRenderedRoleNames(){qa('.shift-cell[data-emp][data-shift][data-day]').forEach(cell=>{const emp=empById(cell.dataset.emp),name=cell.querySelector('.cell-name');if(!emp||!name)return;const role=roleLabel(emp,cell.dataset.shift,cell.dataset.day);name.textContent=(emp.name||'')+(role?' - '+role:'');cell.querySelectorAll('.cell-role,.cell-constraint,.manager-shift-label,.role-shift-label').forEach(x=>x.remove())})}
+const priorRenderScheduleFinal=window.renderSchedule;if(typeof priorRenderScheduleFinal==='function'){const fn=function(){const r=priorRenderScheduleFinal.apply(this,arguments);setTimeout(()=>{normalizeRenderedRoleNames();stripMoon();forceDynamicFonts()},0);return r};window.renderSchedule=fn;try{renderSchedule=fn}catch(e){}}
+const priorRenderHomeFinal=window.renderHome;if(typeof priorRenderHomeFinal==='function'){const fn=function(){const r=priorRenderHomeFinal.apply(this,arguments);setTimeout(()=>{normalizeRenderedRoleNames();stripMoon();forceDynamicFonts()},0);return r};window.renderHome=fn;try{renderHome=fn}catch(e){}}
+function forceDynamicFonts(){qa('.friday-oncall-label,.friday-oncall-label *,.friday-toggle,.friday-toggle *,.wfh-summary-card,.wfh-summary-card *,.constraint-debug-list,.constraint-debug-list *,.holiday-cell,.holiday-cell *,.check-empty-note,.check-empty-note *').forEach(el=>el.style.setProperty('font-family','Arial, Helvetica, Segoe UI, sans-serif','important'))}
+function finalRefresh(){setFinalVersion();removeBackHome();ensureRoleSettings();ensureShiftPlaceholders(currentSchedule);stripMoon();normalizeRenderedRoleNames();forceDynamicFonts();patchConstraintMatrixHoliday()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(finalRefresh,350));else setTimeout(finalRefresh,150);setTimeout(finalRefresh,1200);setTimeout(finalRefresh,3000);setTimeout(finalRefresh,4300);setTimeout(setFinalVersion,6500);
 })();
 </script>
 </body>
