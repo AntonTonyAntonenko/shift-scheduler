@@ -596,7 +596,7 @@ body.sf-exporting .schedule-table td.time-col{font-size:.88em!important;white-sp
     <input type="password" id="login-pass" placeholder="סיסמה" onkeydown="if(event.key==='Enter')doLogin()">
     <button onclick="doLogin()">כניסה למערכת</button>
     <div class="login-error" id="login-err"></div>
-    <div class="login-version">גרסה <span id="login-version-label">1.45.9</span></div>
+    <div class="login-version">גרסה <span id="login-version-label">1.46.0</span></div>
   </div>
 </div>
 
@@ -1140,7 +1140,7 @@ body.sf-exporting .schedule-table td.time-col{font-size:.88em!important;white-sp
   </div>
   <footer class="app-footer">
     <span>כל הזכויות שמורות ל־A.T.A OneShift</span>
-    <span class="version-pill" id="version-footer">גרסה 1.45.9</span>
+    <span class="version-pill" id="version-footer">גרסה 1.46.0</span>
   </footer>
 </div>
 
@@ -13936,6 +13936,167 @@ function boot(){
   setTimeout(()=>{forceVersion();installNewEmployeeFormRules();repairNewEmployeeWFHState();window.scheduleConflictReportV1459();document.documentElement.classList.remove('os-v1459-settling')},950);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
+
+
+<!-- OneShift v1.46.0 — hard-constraint scheduler integrity -->
+<script id="oneshift-v1460-scheduler-integrity">
+(function(){
+'use strict';
+const VERSION='1.46.0';
+const q=s=>document.querySelector(s);
+const arr=x=>Array.isArray(x)?x:[];
+const emps=()=>arr(typeof employees!=='undefined'?employees:window.employees);
+const shs=()=>arr(typeof shifts!=='undefined'?shifts:window.shifts);
+const cons=()=>arr(typeof constraints!=='undefined'?constraints:window.constraints);
+const cfg=()=>typeof settings!=='undefined'&&settings?settings:(window.settings||{});
+const tmin=t=>{const m=String(t||'').match(/^(\d{1,2}):(\d{2})$/);return m?(+m[1]*60 + +m[2]):0};
+const split=v=>String(v||'').split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean);
+function shiftDef(start,day){return shs().find(s=>String(s.start)===String(start)&&(!Array.isArray(s.activeDays)||s.activeDays.map(Number).includes(Number(day))))||shs().find(s=>String(s.start)===String(start))||null}
+function active(def,day){return Array.isArray(def?.activeDays)?def.activeDays.map(Number).includes(Number(day)):Number(day)<=4}
+function minFor(def){return Math.max(0,Number(def?.minCoverage??def?.required??0)||0)}
+function capFor(def){if(!def)return Infinity;const min=minFor(def),mx=Math.max(0,Number(def.maxCoverage||0)||0);return def.allowOverfill?(mx>0?Math.max(min,mx):Infinity):min}
+function applies(c,day){if(!c||!day)return false;if(c.specificDate)return String(c.specificDate)===String(day.dateStr);if(c.dateFrom&&c.dateTo)return String(day.dateStr)>=String(c.dateFrom)&&String(day.dateStr)<=String(c.dateTo);return Number(c.day)===Number(day.dayOfWeek)}
+function overlaps(a1,a2,b1,b2){return tmin(a1)<tmin(b2||'23:59')&&tmin(b1)<tmin(a2||a1)}
+function hardBlocked(e,day,def){
+  if(!e||!day||!def)return true;
+  try{if(typeof getAbsenceForEmployeeDate==='function'&&getAbsenceForEmployeeDate(e.id,day.dateStr))return true}catch(err){}
+  try{if(day.holiday&&typeof isShiftBlockedByHoliday==='function'&&isShiftBlockedByHoliday(day.holiday,def.start,def.end))return true}catch(err){}
+  return cons().some(c=>String(c.employeeId)===String(e.id)&&applies(c,day)&&c.blockDay&&(
+    c.shiftStart?String(c.shiftStart)===String(def.start):
+    c.blockFrom?overlaps(def.start,def.end,c.blockFrom,c.blockTo||'23:59'):true
+  ));
+}
+function positiveFor(e,day,def){return cons().some(c=>String(c.employeeId)===String(e.id)&&applies(c,day)&&(c.mustWork||c.wfhRequired)&&(!c.shiftStart||String(c.shiftStart)===String(def.start)))}
+function requiresWFH(e,day,def){return !!def?.isWFH||Number(day?.dayOfWeek)===5||cons().some(c=>String(c.employeeId)===String(e.id)&&applies(c,day)&&c.wfhRequired&&(!c.shiftStart||String(c.shiftStart)===String(def.start)))}
+function role(e){return e?.isManager?'manager':e?.isSenior?'senior':'regular'}
+function roleStarts(kind){
+  const s=cfg();
+  if(kind==='manager')return split(s.managerAutoShifts||'07:30,09:00');
+  if(kind==='senior')return split(s.seniorAutoShifts||'07:15,09:30');
+  return [];
+}
+function legal(e,day,def){
+  if(!e||!day||!def||hardBlocked(e,day,def))return false;
+  const r=role(e);
+  if(Number(day.dayOfWeek)!==5&&r!=='regular'&&!roleStarts(r).includes(String(def.start)))return false;
+  if(e.isNewEmployee&&window.isNewEmployeeShiftLegalV1452&&!window.isNewEmployeeShiftLegalV1452(e,def,day.dayOfWeek,{auto:true,forceWFH:requiresWFH(e,day,def)}))return false;
+  if(requiresWFH(e,day,def)){
+    try{if(typeof canEmployeeWFH==='function'&&!canEmployeeWFH(e))return false}catch(err){if(!e.canWFH)return false}
+    if(Number(day.dayOfWeek)===5){try{if(typeof canEmployeeFridayWFH==='function'&&!canEmployeeFridayWFH(e))return false}catch(err){return false}}
+  }
+  if(Number(day.dayOfWeek)===5&&e.avoidFriday&&!e.fixedFriday&&!e.wantsFriday)return false;
+  return true;
+}
+function assignments(day){const out=[];for(const sa of arr(day?.shiftAssignments))for(const a of arr(sa.employees))out.push({sa,a});return out}
+function assigned(day,id){return assignments(day).some(x=>String(x.a.employeeId)===String(id))}
+function specialCount(sa){return arr(sa?.employees).filter(a=>{const e=emps().find(x=>String(x.id)===String(a.employeeId));return e&&(e.isManager||e.isSenior)}).length}
+function ensureSA(day,def){let sa=arr(day.shiftAssignments).find(x=>String(x.start)===String(def.start));if(!sa){sa={shiftId:def.id||Date.now()+Math.random(),start:def.start,end:def.end||'',isWFH:!!def.isWFH,employees:[]};day.shiftAssignments=day.shiftAssignments||[];day.shiftAssignments.push(sa)}sa.employees=arr(sa.employees);return sa}
+function add(day,def,e,override=false){
+  if(!legal(e,day,def)||assigned(day,e.id))return false;
+  const sa=ensureSA(day,def);if(sa.employees.length>=capFor(def))return false;
+  if((e.isManager||e.isSenior)&&specialCount(sa)>=1)return false;
+  sa.employees.push({employeeId:e.id,isWFH:requiresWFH(e,day,def),manualTouched:false,constraintOverride:!!override});return true;
+}
+function cleanIllegal(schedule){
+  let removed=0;
+  for(const wg of arr(schedule?.weekGroups))for(const day of arr(wg.days))for(const sa of arr(day.shiftAssignments)){
+    const def=shiftDef(sa.start,day.dayOfWeek)||{start:sa.start,end:sa.end,isWFH:sa.isWFH};
+    const seenSpecial=[];
+    sa.employees=arr(sa.employees).filter(a=>{
+      const e=emps().find(x=>String(x.id)===String(a.employeeId));
+      if(!e||!legal(e,day,def)){removed++;return false}
+      if((e.isManager||e.isSenior)&&seenSpecial.length){removed++;return false}
+      if(e.isManager||e.isSenior)seenSpecial.push(e.id);
+      return true;
+    });
+    const cap=capFor(def);if(Number.isFinite(cap)&&sa.employees.length>cap){removed+=sa.employees.length-cap;sa.employees=sa.employees.slice(0,cap)}
+  }
+  return removed;
+}
+function placePositive(schedule){
+  let placed=0;
+  for(const wg of arr(schedule?.weekGroups))for(const day of arr(wg.days)){
+    if(Number(day.dayOfWeek)>5)continue;
+    const dayCons=cons().filter(c=>applies(c,day)&&(c.mustWork||c.wfhRequired));
+    for(const c of dayCons){
+      const e=emps().find(x=>String(x.id)===String(c.employeeId));if(!e||assigned(day,e.id))continue;
+      let defs=shs().filter(d=>active(d,day.dayOfWeek)&&(!c.shiftStart||String(d.start)===String(c.shiftStart))&&legal(e,day,d));
+      defs.sort((a,b)=>{const ap=positiveFor(e,day,a)?0:1,bp=positiveFor(e,day,b)?0:1;if(ap!==bp)return ap-bp;const an=ensureSA(day,a).employees.length<minFor(a)?0:1,bn=ensureSA(day,b).employees.length<minFor(b)?0:1;if(an!==bn)return an-bn;return tmin(a.start)-tmin(b.start)});
+      if(defs.length&&add(day,defs[0],e,false))placed++;
+    }
+  }
+  return placed;
+}
+function fillMinima(schedule){
+  let added=0;
+  for(const wg of arr(schedule?.weekGroups))for(const day of arr(wg.days)){
+    if(Number(day.dayOfWeek)>5)continue;
+    const defs=shs().filter(d=>active(d,day.dayOfWeek)).sort((a,b)=>tmin(a.start)-tmin(b.start));
+    for(const def of defs){
+      const sa=ensureSA(day,def),target=minFor(def);let guard=0;
+      while(sa.employees.length<target&&guard++<100){
+        let pool=emps().filter(e=>!assigned(day,e.id)&&legal(e,day,def));
+        if(specialCount(sa)>=1)pool=pool.filter(e=>role(e)==='regular');
+        pool.sort((a,b)=>{const ap=positiveFor(a,day,def)?0:1,bp=positiveFor(b,day,def)?0:1;if(ap!==bp)return ap-bp;return Number(a.employeeNumber||9999)-Number(b.employeeNumber||9999)});
+        const pick=pool[0];if(!pick||!add(day,def,pick,false))break;added++;
+      }
+    }
+  }
+  return added;
+}
+function fillUnassigned(schedule){
+  let added=0;
+  for(const wg of arr(schedule?.weekGroups))for(const day of arr(wg.days)){
+    if(Number(day.dayOfWeek)>5)continue;
+    for(const e of emps()){
+      if(assigned(day,e.id))continue;
+      const defs=shs().filter(d=>active(d,day.dayOfWeek)&&legal(e,day,d)&&ensureSA(day,d).employees.length<capFor(d));
+      defs.sort((a,b)=>{const ap=positiveFor(e,day,a)?0:1,bp=positiveFor(e,day,b)?0:1;if(ap!==bp)return ap-bp;const an=ensureSA(day,a).employees.length<minFor(a)?0:1,bn=ensureSA(day,b).employees.length<minFor(b)?0:1;if(an!==bn)return an-bn;return ensureSA(day,a).employees.length-ensureSA(day,b).employees.length||tmin(a.start)-tmin(b.start)});
+      if(defs.length&&add(day,defs[0],e,false))added++;
+    }
+  }
+  return added;
+}
+function audit(schedule){
+  const issues=[];
+  for(const wg of arr(schedule?.weekGroups))for(const day of arr(wg.days))for(const sa of arr(day.shiftAssignments)){
+    const def=shiftDef(sa.start,day.dayOfWeek)||{start:sa.start,end:sa.end,isWFH:sa.isWFH};
+    for(const a of arr(sa.employees)){const e=emps().find(x=>String(x.id)===String(a.employeeId));if(e&&!legal(e,day,def))issues.push(`${e.name}: ${day.dateStr} ${sa.start} מפר אילוץ/חוק`)}
+    if(arr(sa.employees).length<minFor(def))issues.push(`${day.dateStr} ${sa.start}: חסרים ${minFor(def)-arr(sa.employees).length} עובדים`);
+    if(specialCount(sa)>1)issues.push(`${day.dateStr} ${sa.start}: יותר מבעל תפקיד מיוחד אחד`);
+  }
+  return issues;
+}
+window.osIntegrityRepairV1460=function(schedule){
+  if(!schedule?.weekGroups)return {removed:0,placed:0,added:0,issues:[]};
+  const removed=cleanIllegal(schedule);const placed=placePositive(schedule);const added=fillMinima(schedule)+fillUnassigned(schedule);const issues=audit(schedule);
+  return {removed,placed,added,issues};
+};
+const prevGen=window.generateSchedule;
+if(typeof prevGen==='function'&&!prevGen._v1460){
+  const fn=function(){
+    const r=prevGen.apply(this,arguments);
+    if(currentSchedule){
+      const res=window.osIntegrityRepairV1460(currentSchedule);
+      try{persistCurrentSchedule?.()}catch(e){}
+      try{renderSchedule?.(true)}catch(e){}
+      try{window.renderConstraintConflictReportV1431?.(true)}catch(e){}
+      if(res.issues.length){try{toast(`⚠️ השיבוץ נשמר ללא הפרת אילוצים, אך נשארו ${res.issues.length} חוסרים/התנגשויות שאין להם פתרון חוקי אוטומטי`,'warning')}catch(e){}}
+    }
+    return r;
+  };
+  fn._v1460=true;window.generateSchedule=fn;try{generateSchedule=fn}catch(e){}
+}
+function setVersion(){
+  try{window.APP_VERSION=VERSION}catch(e){}
+  const login=q('#login-version-label');if(login)login.textContent=VERSION;
+  const footer=q('#version-footer');if(footer)footer.textContent='גרסה '+VERSION;
+  document.documentElement.dataset.oneshiftVersion=VERSION;
+}
+function boot(){setVersion();try{if(currentSchedule){const res=window.osIntegrityRepairV1460(currentSchedule);if(res.removed||res.placed||res.added){persistCurrentSchedule?.();renderSchedule?.(true)}}}catch(e){console.error('v1.46 integrity repair',e)}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,1100),{once:true});else setTimeout(boot,1100);
 })();
 </script>
 
