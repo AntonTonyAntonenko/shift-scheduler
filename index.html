@@ -13944,7 +13944,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="oneshift-v1460-scheduler-integrity">
 (function(){
 'use strict';
-const VERSION='1.46.0';
+const VERSION='1.46.1';
 const q=s=>document.querySelector(s);
 const arr=x=>Array.isArray(x)?x:[];
 const emps=()=>arr(typeof employees!=='undefined'?employees:window.employees);
@@ -13999,36 +13999,119 @@ function add(day,def,e,override=false){
   if((e.isManager||e.isSenior)&&specialCount(sa)>=1)return false;
   sa.employees.push({employeeId:e.id,isWFH:requiresWFH(e,day,def),manualTouched:false,constraintOverride:!!override});return true;
 }
+function isManual(a){return !!(a&&(a.manualTouched===true||a.manualOverride===true))}
+function posCons(e,day){return cons().filter(c=>String(c.employeeId)===String(e.id)&&applies(c,day)&&(c.mustWork||c.wfhRequired)&&!c.blockDay)}
+function posMatches(e,day,def){return posCons(e,day).some(c=>!c.shiftStart||String(c.shiftStart)===String(def.start))}
+/* A placement is PROTECTED (never auto-removed) when the manager placed it by hand, or when the employee explicitly asked for it
+   (must-work / WFH constraint) and the shift is not hard-blocked (absence / holiday / block constraint). */
+function isProtected(a,e,day,def){
+  if(isManual(a))return true;
+  if(!e||!def)return false;
+  return posMatches(e,day,def)&&!hardBlocked(e,day,def);
+}
+function findAssign(day,id){for(const sa of arr(day?.shiftAssignments)){const i=arr(sa.employees).findIndex(a=>String(a.employeeId)===String(id));if(i>=0)return {sa,a:sa.employees[i],i}}return null}
+function removeFromDay(day,id){for(const sa of arr(day?.shiftAssignments)){sa.employees=arr(sa.employees).filter(a=>String(a.employeeId)!==String(id))}}
+function empOf(id){return emps().find(x=>String(x.id)===String(id))||null}
 function cleanIllegal(schedule){
   let removed=0;
   for(const wg of arr(schedule?.weekGroups))for(const day of arr(wg.days))for(const sa of arr(day.shiftAssignments)){
     const def=shiftDef(sa.start,day.dayOfWeek)||{start:sa.start,end:sa.end,isWFH:sa.isWFH};
-    const seenSpecial=[];
+    // 1) remove automatic placements that break a hard rule / constraint. Manual and explicitly-requested placements are kept.
     sa.employees=arr(sa.employees).filter(a=>{
-      const e=emps().find(x=>String(x.id)===String(a.employeeId));
-      if(!e||!legal(e,day,def)){removed++;return false}
-      if((e.isManager||e.isSenior)&&seenSpecial.length){removed++;return false}
-      if(e.isManager||e.isSenior)seenSpecial.push(e.id);
+      const e=empOf(a.employeeId);
+      if(!e){removed++;return false}
+      if(isProtected(a,e,day,def))return true;
+      if(!legal(e,day,def)){removed++;return false}
       return true;
     });
-    const cap=capFor(def);if(Number.isFinite(cap)&&sa.employees.length>cap){removed+=sa.employees.length-cap;sa.employees=sa.employees.slice(0,cap)}
+    // 2) at most one manager/senior per shift, but never drop a protected one
+    const specials=sa.employees.filter(a=>{const e=empOf(a.employeeId);return e&&(e.isManager||e.isSenior)});
+    if(specials.length>1){
+      const keep=specials.find(a=>isProtected(a,empOf(a.employeeId),day,def))||specials[0];
+      sa.employees=sa.employees.filter(a=>{
+        if(!specials.includes(a)||a===keep)return true;
+        if(isProtected(a,empOf(a.employeeId),day,def))return true;
+        removed++;return false;
+      });
+    }
+    // 3) max capacity: trim only automatic placements
+    const cap=capFor(def);
+    if(Number.isFinite(cap)){
+      let over=sa.employees.length-cap;
+      for(let i=sa.employees.length-1;i>=0&&over>0;i--){
+        const a=sa.employees[i];
+        if(!isProtected(a,empOf(a.employeeId),day,def)){sa.employees.splice(i,1);removed++;over--}
+      }
+    }
   }
   return removed;
 }
-function placePositive(schedule){
-  let placed=0;
-  for(const wg of arr(schedule?.weekGroups))for(const day of arr(wg.days)){
-    if(Number(day.dayOfWeek)>5)continue;
-    const dayCons=cons().filter(c=>applies(c,day)&&(c.mustWork||c.wfhRequired));
-    for(const c of dayCons){
-      const e=emps().find(x=>String(x.id)===String(c.employeeId));if(!e||assigned(day,e.id))continue;
-      let defs=shs().filter(d=>active(d,day.dayOfWeek)&&(!c.shiftStart||String(d.start)===String(c.shiftStart))&&legal(e,day,d));
-      defs.sort((a,b)=>{const ap=positiveFor(e,day,a)?0:1,bp=positiveFor(e,day,b)?0:1;if(ap!==bp)return ap-bp;const an=ensureSA(day,a).employees.length<minFor(a)?0:1,bn=ensureSA(day,b).employees.length<minFor(b)?0:1;if(an!==bn)return an-bn;return tmin(a.start)-tmin(b.start)});
-      if(defs.length&&add(day,defs[0],e,false))placed++;
+function makeRoomFor(day,def,sa,incoming){
+  const cap=capFor(def);
+  if(Number.isFinite(cap)&&sa.employees.length>=cap){
+    // try to move an ordinary worker with no request of his own to another shift that still has room
+    for(let i=sa.employees.length-1;i>=0;i--){
+      const a=sa.employees[i],v=empOf(a.employeeId);
+      if(!v||role(v)!=='regular'||isProtected(a,v,day,def)||posCons(v,day).length)continue;
+      const alts=shs().filter(d=>d!==def&&active(d,day.dayOfWeek)&&legal(v,day,d)&&ensureSA(day,d).employees.length<capFor(d));
+      alts.sort((x,y)=>{const ux=ensureSA(day,x).employees.length<minFor(x)?0:1,uy=ensureSA(day,y).employees.length<minFor(y)?0:1;return ux-uy||tmin(x.start)-tmin(y.start)});
+      if(alts.length){sa.employees.splice(i,1);ensureSA(day,alts[0]).employees.push({employeeId:v.id,isWFH:requiresWFH(v,day,alts[0]),manualTouched:false});break}
     }
   }
-  return placed;
+  // a requested manager/senior wins over an automatic one in the same shift
+  if(incoming&&role(incoming)!=='regular'){
+    for(let i=sa.employees.length-1;i>=0;i--){
+      const a=sa.employees[i],o=empOf(a.employeeId);
+      if(!o||role(o)==='regular'||isProtected(a,o,day,def))continue;
+      sa.employees.splice(i,1);
+      const alt=shs().find(d=>d!==def&&active(d,day.dayOfWeek)&&legal(o,day,d)&&specialCount(ensureSA(day,d))===0&&ensureSA(day,d).employees.length<capFor(d));
+      if(alt)ensureSA(day,alt).employees.push({employeeId:o.id,isWFH:requiresWFH(o,day,alt),manualTouched:false});
+    }
+  }
 }
+/* Guarantees every explicit request (must work / WFH, with or without a shift) is honoured:
+   - employee already in the wanted shift -> only the WFH flag is aligned
+   - employee in another shift -> moved to the requested one
+   - employee not assigned -> assigned to the requested shift (any free/needed shift when none was named)
+   Requests win over max capacity and over automatic role rules; they never override absence / holiday / block constraints.
+   A placement the manager made by hand is never touched unless the manager has just saved a newer request (opts.overrideManual). */
+function enforcePositive(schedule,opts){
+  opts=opts||{};const res={moved:0,added:0,unmet:[]};
+  for(const wg of arr(schedule?.weekGroups))for(const day of arr(wg.days)){
+    if(Number(day.dayOfWeek)>5)continue;
+    day.shiftAssignments=day.shiftAssignments||[];
+    for(const e of emps()){
+      const pcs=posCons(e,day);if(!pcs.length)continue;
+      const wanted=[...new Set(pcs.map(c=>c.shiftStart).filter(Boolean).map(String))];
+      const wantWfh=pcs.some(c=>c.wfhRequired);
+      const cur=findAssign(day,e.id);
+      const force=opts.overrideManual&&opts.overrideManual.has(String(e.id));
+      if(cur&&isManual(cur.a)&&!force)continue;
+      if(cur&&force){delete cur.a.manualTouched;delete cur.a.manualOverride}
+      if(cur&&(!wanted.length||wanted.includes(String(cur.sa.start)))){
+        cur.a.constraintTouched=true;if(wantWfh){cur.a.isWFH=true;delete cur.a.wfhOverride}
+        continue;
+      }
+      let defs=wanted.length?wanted.map(st=>shs().find(d=>String(d.start)===st&&active(d,day.dayOfWeek))).filter(Boolean):shs().filter(d=>active(d,day.dayOfWeek));
+      const free=defs.filter(d=>!hardBlocked(e,day,d));
+      if(!free.length){
+        let absent=false,hol=false;try{absent=!!getAbsenceForEmployeeDate(e.id,day.dateStr)}catch(err){}
+        hol=!!day.holiday&&defs.length>0&&defs.every(d=>{try{return isShiftBlockedByHoliday(day.holiday,d.start,d.end)}catch(err){return false}});
+        if(!absent&&!hol)res.unmet.push({emp:e,day,reason:wanted.length?`המשמרת ${wanted.join(', ')} לא קיימת ביום הזה או חסומה`:'אין משמרת זמינה'});
+        continue;
+      }
+      free.sort((x,y)=>{const sx=ensureSA(day,x),sy=ensureSA(day,y);const ux=sx.employees.length<minFor(x)?0:1,uy=sy.employees.length<minFor(y)?0:1;if(ux!==uy)return ux-uy;const cx=sx.employees.length<capFor(x)?0:1,cy=sy.employees.length<capFor(y)?0:1;if(cx!==cy)return cx-cy;return sx.employees.length-sy.employees.length||tmin(x.start)-tmin(y.start)});
+      const def=free[0];
+      if(cur)removeFromDay(day,e.id);
+      const sa=ensureSA(day,def);
+      makeRoomFor(day,def,sa,e);
+      sa.employees.push({employeeId:e.id,isWFH:wantWfh||requiresWFH(e,day,def),manualTouched:false,constraintTouched:true});
+      if(cur)res.moved++;else res.added++;
+    }
+  }
+  return res;
+}
+function placePositive(schedule){const r=enforcePositive(schedule);return r.moved+r.added}
 function fillMinima(schedule){
   let added=0;
   for(const wg of arr(schedule?.weekGroups))for(const day of arr(wg.days)){
@@ -14061,18 +14144,46 @@ function fillUnassigned(schedule){
 }
 function audit(schedule){
   const issues=[];
-  for(const wg of arr(schedule?.weekGroups))for(const day of arr(wg.days))for(const sa of arr(day.shiftAssignments)){
-    const def=shiftDef(sa.start,day.dayOfWeek)||{start:sa.start,end:sa.end,isWFH:sa.isWFH};
-    for(const a of arr(sa.employees)){const e=emps().find(x=>String(x.id)===String(a.employeeId));if(e&&!legal(e,day,def))issues.push(`${e.name}: ${day.dateStr} ${sa.start} מפר אילוץ/חוק`)}
-    if(arr(sa.employees).length<minFor(def))issues.push(`${day.dateStr} ${sa.start}: חסרים ${minFor(def)-arr(sa.employees).length} עובדים`);
-    if(specialCount(sa)>1)issues.push(`${day.dateStr} ${sa.start}: יותר מבעל תפקיד מיוחד אחד`);
+  for(const wg of arr(schedule?.weekGroups))for(const day of arr(wg.days)){
+    for(const sa of arr(day.shiftAssignments)){
+      const def=shiftDef(sa.start,day.dayOfWeek)||{start:sa.start,end:sa.end,isWFH:sa.isWFH};
+      for(const a of arr(sa.employees)){const e=empOf(a.employeeId);if(e&&!isProtected(a,e,day,def)&&!legal(e,day,def))issues.push(`${e.name}: ${day.dateStr} ${sa.start} מפר אילוץ/חוק`)}
+      if(arr(sa.employees).length<minFor(def))issues.push(`${day.dateStr} ${sa.start}: חסרים ${minFor(def)-arr(sa.employees).length} עובדים`);
+      if(specialCount(sa)>1)issues.push(`${day.dateStr} ${sa.start}: יותר מבעל תפקיד מיוחד אחד`);
+    }
+    if(Number(day.dayOfWeek)>5)continue;
+    for(const e of emps()){
+      const pcs=posCons(e,day);if(!pcs.length)continue;
+      const cur=findAssign(day,e.id);
+      if(cur&&isManual(cur.a))continue;
+      const wanted=[...new Set(pcs.map(c=>c.shiftStart).filter(Boolean).map(String))];
+      const ok=cur&&(!wanted.length||wanted.includes(String(cur.sa.start)));
+      let skip=false;try{skip=!!getAbsenceForEmployeeDate(e.id,day.dateStr)}catch(err){}
+      if(!ok&&!skip&&!(day.holiday&&typeof isShiftBlockedByHoliday==='function'&&shs().filter(d=>active(d,day.dayOfWeek)).every(d=>{try{return isShiftBlockedByHoliday(day.holiday,d.start,d.end)}catch(err){return false}})))issues.push(`אילוץ לא כובד: ${e.name} ${day.dateStr}${wanted.length?' '+wanted.join(','):''}`);
+    }
   }
   return issues;
 }
-window.osIntegrityRepairV1460=function(schedule){
+window.osIntegrityRepairV1460=function(schedule,opts){
+  opts=opts||{};
   if(!schedule?.weekGroups)return {removed:0,placed:0,added:0,issues:[]};
-  const removed=cleanIllegal(schedule);const placed=placePositive(schedule);const added=fillMinima(schedule)+fillUnassigned(schedule);const issues=audit(schedule);
-  return {removed,placed,added,issues};
+  const removed=cleanIllegal(schedule);
+  const r1=enforcePositive(schedule,opts);
+  const added=opts.fill===false?0:(fillMinima(schedule)+fillUnassigned(schedule));
+  const r2=opts.fill===false?{moved:0,added:0}:enforcePositive(schedule,opts);
+  const issues=audit(schedule);
+  return {removed,placed:r1.moved+r1.added+r2.moved+r2.added,added,issues};
+};
+/* Apply the saved requests/blocks to the CURRENT schedule right now (no regeneration, no filling, manual placements preserved). */
+window.osApplyConstraintsNowV1461=function(empId){
+  if(typeof currentSchedule==='undefined'||!currentSchedule?.weekGroups)return null;
+  const res=window.osIntegrityRepairV1460(currentSchedule,{fill:false,overrideManual:empId?new Set([String(empId)]):null});
+  try{persistCurrentSchedule?.()}catch(e){}
+  try{renderSchedule?.(true)}catch(e){}
+  try{renderHome?.()}catch(e){}
+  try{window.renderConstraintMatrixV1432?.()}catch(e){}
+  try{window.renderConstraintConflictReportV1431?.(true)}catch(e){}
+  return res;
 };
 const prevGen=window.generateSchedule;
 if(typeof prevGen==='function'&&!prevGen._v1460){
@@ -14095,8 +14206,179 @@ function setVersion(){
   const footer=q('#version-footer');if(footer)footer.textContent='גרסה '+VERSION;
   document.documentElement.dataset.oneshiftVersion=VERSION;
 }
-function boot(){setVersion();try{if(currentSchedule){const res=window.osIntegrityRepairV1460(currentSchedule);if(res.removed||res.placed||res.added){persistCurrentSchedule?.();renderSchedule?.(true)}}}catch(e){console.error('v1.46 integrity repair',e)}}
+function boot(){setVersion();try{if(currentSchedule){const res=window.osIntegrityRepairV1460(currentSchedule,{fill:false});if(res.removed||res.placed){persistCurrentSchedule?.();renderSchedule?.(true)}}}catch(e){console.error('v1.46 integrity repair',e)}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,1100),{once:true});else setTimeout(boot,1100);
+})();
+</script>
+
+<script id="oneshift-v1461-manual-freedom-and-hub">
+(function(){
+'use strict';
+const VERSION='1.46.1';
+const q=s=>document.querySelector(s), qa=s=>Array.from(document.querySelectorAll(s));
+const arr=x=>Array.isArray(x)?x:[];
+const emps=()=>arr(typeof employees!=='undefined'?employees:window.employees);
+const shs=()=>arr(typeof shifts!=='undefined'?shifts:window.shifts);
+const cons=()=>arr(typeof constraints!=='undefined'?constraints:window.constraints);
+const cfg=()=>typeof settings!=='undefined'&&settings?settings:(window.settings||{});
+const empById=id=>emps().find(e=>String(e.id)===String(id))||null;
+const tmin=t=>{const m=String(t||'').match(/^(\d{1,2}):(\d{2})$/);return m?(+m[1]*60 + +m[2]):0};
+const split=v=>String(v||'').split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean);
+const DAYS=['ראשון','שני','שלישי','רביעי','חמישי','שישי'];
+function activeOnDay(s,d){return Array.isArray(s?.activeDays)?s.activeDays.map(Number).includes(Number(d)):Number(d)<=4}
+function defFor(start,dow){return shs().find(s=>String(s.start)===String(start)&&activeOnDay(s,dow))||null}
+function minFor(def){return Math.max(0,Number(def?.minCoverage??def?.required??0)||0)}
+function capFor(def){if(!def)return Infinity;const min=minFor(def),mx=Math.max(0,Number(def.maxCoverage||0)||0);return def.allowOverfill?(mx>0?Math.max(min,mx):Infinity):(min>0?min:Infinity)}
+function isSpecial(e){return !!(e&&(e.isManager||e.isSenior))}
+function getDay(weekIdx,dow){return currentSchedule?.weekGroups?.[Number(weekIdx)]?.days?.find(d=>Number(d.dayOfWeek)===Number(dow))||null}
+function getSA(day,start){return arr(day?.shiftAssignments).find(s=>String(s.start)===String(start))||null}
+function renderOnce(){
+  try{renderSchedule?.(true)}catch(e){console.error('render schedule',e)}
+  try{persistCurrentSchedule?.()}catch(e){}
+  try{renderHome?.()}catch(e){}
+  try{window.renderConstraintConflictReportV1431?.(true)}catch(e){}
+}
+
+/* ---------------------------------------------------------------------------
+   MANUAL EDITING = WARN, NEVER BLOCK.
+   Every conflict with the rules is listed to the manager, who decides. The same logic applies to
+   regular workers, senior support and shift managers, and to swap / move / add-from-list.
+--------------------------------------------------------------------------- */
+function manualWarnings(e,day,start,end,saTarget,leaving){
+  const w=[];if(!e||!day)return w;
+  const dow=Number(day.dayOfWeek),def=defFor(start,dow);
+  if(!def)w.push(`המשמרת ${start}${end?'-'+end:''} אינה מוגדרת כפעילה ביום ${DAYS[dow]||dow}`);
+  try{(window.validateEmployeeForSlot?.(e.id,start,dow,day.dateStr,false)||[]).forEach(x=>w.push(x))}catch(err){}
+  try{if(day.holiday&&typeof isShiftBlockedByHoliday==='function'&&isShiftBlockedByHoliday(day.holiday,start,end||def?.end))w.push(`חג / שעות חסומות (${day.holiday.name||'חג'})`)}catch(err){}
+  try{if(typeof employeeBlockedForShift==='function'&&employeeBlockedForShift(e.id,dow,day.dateStr,start,end||def?.end||start)&&!w.some(x=>x.includes('חסימה')))w.push(`${e.name}: יש לו אילוץ חסימה ביום ${DAYS[dow]||dow}`)}catch(err){}
+  if(dow!==5&&e.isSenior&&!e.isManager&&!split(cfg().seniorAutoShifts||'07:15,09:30').includes(String(start)))w.push(`${e.name} תומך בכיר – זו לא משמרת בכירים רגילה`);
+  if(dow===5&&e.avoidFriday)w.push(`${e.name} ביקש לא לעבוד בשישי`);
+  cons().filter(c=>String(c.employeeId)===String(e.id)&&(c.mustWork||c.wfhRequired)&&!c.blockDay).forEach(c=>{
+    let ap=false;if(c.specificDate)ap=String(c.specificDate)===String(day.dateStr);else if(c.dateFrom&&c.dateTo)ap=String(day.dateStr)>=String(c.dateFrom)&&String(day.dateStr)<=String(c.dateTo);else ap=Number(c.day)===dow;
+    if(ap&&c.shiftStart&&String(c.shiftStart)!==String(start))w.push(`${e.name} ביקש לעבוד במשמרת ${c.shiftStart} ולא ב-${start}`);
+  });
+  const excl=new Set(arr(leaving).map(String));
+  const others=arr(saTarget?.employees).filter(a=>!excl.has(String(a.employeeId)));
+  const specials=others.map(a=>empById(a.employeeId)).filter(isSpecial).length+(isSpecial(e)?1:0);
+  if(specials>1)w.push(`יהיו יותר מאחמ״ש / תומך בכיר אחד במשמרת ${start}`);
+  const cap=capFor(def);if(Number.isFinite(cap)&&others.length+1>cap)w.push(`המשמרת ${start} תחרוג מכמות העובדים המותרת (${cap})`);
+  return [...new Set(w)];
+}
+function askManual(list){
+  if(!list.length)return true;
+  try{return confirm('⚠️ הפעולה מתנגשת עם החוקים / האילוצים שהגדרת:\n\n• '+[...new Set(list)].slice(0,14).join('\n• ')+'\n\nהמערכת לא חוסמת אותך — להמשיך ולבצע בכל זאת?')}catch(e){return true}
+}
+window.performSwap=performSwap=function(emp1Id,shift1,day1,emp2Id,shift2,day2,weekIdx){
+  if(String(emp1Id)===String(emp2Id)&&String(shift1)===String(shift2)&&Number(day1)===Number(day2))return;
+  const d1=getDay(weekIdx,day1),d2=getDay(weekIdx,day2);if(!d1||!d2)return;
+  const sa1=getSA(d1,shift1),sa2=getSA(d2,shift2);if(!sa1||!sa2)return;
+  const i1=arr(sa1.employees).findIndex(a=>String(a.employeeId)===String(emp1Id)),i2=arr(sa2.employees).findIndex(a=>String(a.employeeId)===String(emp2Id));if(i1<0||i2<0)return;
+  const e1=empById(emp1Id),e2=empById(emp2Id);
+  const w=[...manualWarnings(e1,d2,sa2.start,sa2.end,sa2,[emp2Id]),...manualWarnings(e2,d1,sa1.start,sa1.end,sa1,[emp1Id])];
+  if(!askManual(w))return;
+  const a1={...sa1.employees[i1],manualTouched:true},a2={...sa2.employees[i2],manualTouched:true};
+  if(w.length){a1.manualOverride=true;a2.manualOverride=true}
+  sa1.employees[i1]=a2;sa2.employees[i2]=a1;
+  renderOnce();toast(w.length?'✅ ההחלפה בוצעה (למרות חריגה)':'✅ ההחלפה בוצעה');
+};
+window.moveEmpToSlot=moveEmpToSlot=function(empId,fromShift,fromDay,toShift,toDay,weekIdx){
+  const fd=getDay(weekIdx,fromDay),td=getDay(weekIdx,toDay);if(!fd||!td)return;
+  const from=getSA(fd,fromShift);if(!from)return;
+  if(Number(fromDay)===Number(toDay)&&String(fromShift)===String(toShift))return;
+  const idx=arr(from.employees).findIndex(a=>String(a.employeeId)===String(empId));if(idx<0)return;
+  const e=empById(empId),def=defFor(toShift,toDay);
+  let to=getSA(td,toShift);
+  const w=manualWarnings(e,td,toShift,def?.end||to?.end||'',to,[]);
+  const fdef=defFor(fromShift,fromDay);if(fdef&&arr(from.employees).length-1<minFor(fdef))w.push(`המשמרת ${fromShift} תרד מתחת למינימום (${minFor(fdef)})`);
+  if(!askManual(w))return;
+  if(!to){to={shiftId:def?.id||Date.now(),start:toShift,end:def?.end||'',isWFH:!!def?.isWFH,employees:[]};td.shiftAssignments=td.shiftAssignments||[];td.shiftAssignments.push(to)}
+  const [a]=from.employees.splice(idx,1);a.manualTouched=true;if(w.length)a.manualOverride=true;to.employees.push(a);
+  renderOnce();toast(w.length?'✅ עובד הועבר (למרות חריגה)':'✅ עובד הועבר');
+};
+window.confirmAddToShift=confirmAddToShift=function(){
+  let ctx=null,sel=null;
+  try{ctx=addToShiftContext;sel=addToShiftSelected}catch(e){}
+  ctx=ctx||window.addToShiftContext;sel=sel||window.addToShiftSelected;
+  if(!sel||!sel.size){toast('לא נבחרו עובדים','error');return}
+  if(!ctx)return;
+  const day=getDay(ctx.weekIdx,ctx.dayOfWeek);if(!day){toast('לא נמצא יום בשיבוץ','error');return}
+  const def=defFor(ctx.shiftStart,ctx.dayOfWeek);
+  let sa=getSA(day,ctx.shiftStart);
+  const ids=Array.from(sel).filter(id=>!arr(sa?.employees).some(a=>String(a.employeeId)===String(id)));
+  const w=[];
+  // simulate adding the whole selection so that role / capacity conflicts are counted together
+  const sim={employees:[...arr(sa?.employees)]};
+  ids.forEach(id=>{const e=empById(id);manualWarnings(e,day,ctx.shiftStart,def?.end||sa?.end||'',sim,[]).forEach(x=>w.push(`${e?.name||id}: ${x}`));sim.employees.push({employeeId:id})});
+  if(!askManual(w))return;
+  if(!sa){sa={shiftId:def?.id||Date.now(),start:ctx.shiftStart,end:def?.end||'',isWFH:!!def?.isWFH,employees:[]};day.shiftAssignments=day.shiftAssignments||[];day.shiftAssignments.push(sa)}
+  let added=0;
+  ids.forEach(id=>{
+    const already=arr(day.shiftAssignments).some(s=>arr(s.employees).some(a=>String(a.employeeId)===String(id)));
+    if(already)return;
+    sa.employees.push({employeeId:(empById(id)?.id??id),isWFH:!!(sa.isWFH||def?.isWFH||Number(ctx.dayOfWeek)===5),manualTouched:true,manualOverride:w.length>0});added++;
+  });
+  try{closeModal('modal-add-to-shift')}catch(e){}
+  try{addToShiftSelected=new Set();window.addToShiftSelected=addToShiftSelected}catch(e){}
+  renderOnce();toast(`✅ ${added} עובדים נוספו למשמרת`);
+};
+window.addEmpToShift=addEmpToShift=function(empId){try{addToShiftSelected=new Set([empId]);window.addToShiftSelected=addToShiftSelected}catch(e){window.addToShiftSelected=new Set([empId])}window.confirmAddToShift()};
+
+/* ---------------------------------------------------------------------------
+   HOME "אילוצים ושיבוץ": each day offers only shifts that really exist on that day.
+   Sun–Thu never show the Friday (…-13:30) shifts; Friday shows only Friday shifts.
+--------------------------------------------------------------------------- */
+function shiftExistsOnDay(start,end,dow){return shs().some(s=>String(s.start)===String(start)&&String(s.end)===String(end)&&activeOnDay(s,dow))}
+function filterHubShiftSelects(){
+  qa('select[id^="home-shift-"],select[id^="schedule-shift-"]').forEach(sel=>{
+    const m=sel.id.match(/-shift-(\d)$/);if(!m)return;const dow=Number(m[1]);
+    Array.from(sel.options).forEach(o=>{
+      if(!o.value)return;
+      const t=String(o.textContent).match(/(\d{1,2}:\d{2})\D+(\d{1,2}:\d{2})/);if(!t)return;
+      if(!shiftExistsOnDay(t[1],t[2],dow)){const was=o.selected;o.remove();if(was)sel.value=''}
+    });
+  });
+}
+function hubDayShiftError(){
+  for(let i=0;i<=5;i++){
+    const sel=q('#home-shift-'+i);if(!sel||!sel.value)continue;
+    const o=sel.options[sel.selectedIndex];const t=o&&String(o.textContent).match(/(\d{1,2}:\d{2})\D+(\d{1,2}:\d{2})/);
+    if(t&&!shiftExistsOnDay(t[1],t[2],i))return `המשמרת ${t[1]}-${t[2]} לא קיימת ביום ${DAYS[i]}`;
+  }
+  return '';
+}
+(function watchHub(){
+  let busy=false;
+  const run=()=>{if(busy)return;busy=true;try{filterHubShiftSelects()}finally{busy=false}};
+  const start=()=>{const host=q('#tab-home')||document.body;try{new MutationObserver(run).observe(host,{childList:true,subtree:true})}catch(e){}run()};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
+const prevRows=window.renderUnifiedConstraintRowsV143;
+if(typeof prevRows==='function'&&!prevRows._v1461){const f=function(){const r=prevRows.apply(this,arguments);try{filterHubShiftSelects()}catch(e){}return r};f._v1461=true;window.renderUnifiedConstraintRowsV143=f;try{renderUnifiedConstraintRowsV143=f}catch(e){}}
+
+/* Saving constraints re-applies them to the schedule on screen immediately. */
+const prevSaveHub=window.saveUnifiedWeekConstraintsV143;
+if(typeof prevSaveHub==='function'&&!prevSaveHub._v1461){
+  const f=function(prefix){
+    const err=hubDayShiftError();if(err){toast('❌ '+err,'error');return}
+    const empId=q('#home-emp')?.value;
+    const r=prevSaveHub.apply(this,arguments);
+    try{if(empId&&empId!=='__all__')window.osApplyConstraintsNowV1461?.(empId)}catch(e){console.error('apply constraints',e)}
+    return r;
+  };f._v1461=true;window.saveUnifiedWeekConstraintsV143=f;try{saveUnifiedWeekConstraintsV143=f}catch(e){}
+}
+const prevAddCons=window.addConstraint;
+if(typeof prevAddCons==='function'&&!prevAddCons._v1461){
+  const f=function(){const empId=q('#c-emp')?.value;const n=cons().length;const r=prevAddCons.apply(this,arguments);try{if(empId&&cons().length!==n)window.osApplyConstraintsNowV1461?.(empId)}catch(e){console.error('apply constraints',e)}return r};
+  f._v1461=true;window.addConstraint=f;try{addConstraint=f}catch(e){}
+}
+
+function setVersion(){
+  try{window.APP_VERSION=VERSION}catch(e){}try{APP_VERSION=VERSION}catch(e){}
+  const a=q('#login-version-label');if(a)a.textContent=VERSION;
+  const b=q('#version-footer');if(b)b.textContent='גרסה '+VERSION;
+  try{document.documentElement.dataset.oneshiftVersion=VERSION}catch(e){}
+}
+setTimeout(setVersion,1500);
 })();
 </script>
 
