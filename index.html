@@ -596,7 +596,7 @@ body.sf-exporting .schedule-table td.time-col{font-size:.88em!important;white-sp
     <input type="password" id="login-pass" placeholder="סיסמה" onkeydown="if(event.key==='Enter')doLogin()">
     <button onclick="doLogin()">כניסה למערכת</button>
     <div class="login-error" id="login-err"></div>
-    <div class="login-version">גרסה <span id="login-version-label">1.46.0</span></div>
+    <div class="login-version">גרסה <span id="login-version-label">1.46.2</span></div>
   </div>
 </div>
 
@@ -1140,7 +1140,7 @@ body.sf-exporting .schedule-table td.time-col{font-size:.88em!important;white-sp
   </div>
   <footer class="app-footer">
     <span>כל הזכויות שמורות ל־A.T.A OneShift</span>
-    <span class="version-pill" id="version-footer">גרסה 1.46.0</span>
+    <span class="version-pill" id="version-footer">גרסה 1.46.2</span>
   </footer>
 </div>
 
@@ -1261,7 +1261,7 @@ body.sf-exporting .schedule-table td.time-col{font-size:.88em!important;white-sp
 // ============================================================
 // DATA & STATE
 // ============================================================
-const APP_VERSION='1.45.9';
+const APP_VERSION='1.46.2';
 const APP_PASSWORD_HASH_KEY = 'sf_password_hash_v2';
 const LEGACY_PASSWORD_KEY = 'sf_password'; // migration only: old local plaintext password key
 const DEFAULT_PASSWORD_HASH = ''; // disabled in v1.44.0 — no hard-coded default verifier
@@ -5242,7 +5242,7 @@ document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click
 // V1.42.5 PATCH — OneShift operational refinements
 // ============================================================
 (function(){
-  window.APP_VERSION='1.45.9';
+  window.APP_VERSION='1.46.2';
 })();
 
 // Extend themes with pink and red, and keep the selected dot index flexible
@@ -5687,7 +5687,7 @@ addQuickAbsence=function(){
 // V1.42.5 PATCH — portal, absences, Friday toggles, Excel exports
 // ============================================================
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   try{ window.APP_VERSION = VERSION; }catch(e){}
   function bumpVersionLabels(){
     const login=document.getElementById('login-version-label'); if(login) login.textContent=VERSION;
@@ -5934,7 +5934,7 @@ addQuickAbsence=function(){
 // V1.42.5 PATCH — privacy, fair checks, retro attendance, visual fixes
 // ============================================================
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   try{ window.APP_VERSION=VERSION; }catch(e){}
   function bumpV1423(){
     const login=document.getElementById('login-version-label'); if(login) login.textContent=VERSION;
@@ -6139,7 +6139,7 @@ addQuickAbsence=function(){
 // V1.42.6 PATCH — Friday checks restored, WFH toggle stability, SB Friday supporter, absence fix
 // ============================================================
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   function setVersionV1426(){
     document.querySelectorAll('#login-version-label').forEach(el=>el.textContent=VERSION);
@@ -6433,7 +6433,7 @@ body.sf-exporting .shift-time-text,.coverage-time-range{unicode-bidi:embed;direc
 </style>
 <script id="oneshift-v1424-script">
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   function escHtml(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function setV1424Labels(){
     document.querySelectorAll('#login-version-label').forEach(el=>el.textContent=VERSION);
@@ -6665,7 +6665,7 @@ body.sf-exporting .shift-time-text,.coverage-time-range{unicode-bidi:embed;direc
 // V1.42.5 PATCH — WFH manual fixes, clean checks table, manager absence constraints
 // ============================================================
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   function bumpVersion(){
     document.querySelectorAll('#login-version-label').forEach(el=>el.textContent=VERSION);
@@ -6860,7 +6860,7 @@ body.sf-exporting .shift-time-text,.coverage-time-range{unicode-bidi:embed;direc
 // V1.42.6 PATCH — Friday checks restored, WFH toggle stability, SB Friday supporter, absence fix
 // ============================================================
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   function setVersionV1426(){
     document.querySelectorAll('#login-version-label').forEach(el=>el.textContent=VERSION);
@@ -7119,7 +7119,7 @@ body.sf-exporting .shift-time-text,.coverage-time-range{unicode-bidi:embed;direc
 // live constraint panel, and schedule-rule validation
 // ============================================================
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const NEW_EMPLOYEE_AUTO_SHIFT='07:30';
 
@@ -7502,7 +7502,7 @@ body.sf-exporting .shift-time-text,.coverage-time-range{unicode-bidi:embed;direc
 // new-employee auto placement, and Friday retro log
 // ============================================================
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const FIXED_ABSENCE_OPTIONS=[
     ['sick','מחלה'],['vacation','חופשה'],['reserve','מילואים'],['absence','היעדרות'],['personal','נסיבות אישיות']
@@ -7908,7 +7908,7 @@ body.sf-exporting .shift-time-text,.coverage-time-range{unicode-bidi:embed;direc
 // SB Friday cleanup, modal usability, and absence-aware WFH quota stability
 // ============================================================
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const ABS_LABELS={sick:'מחלה',vacation:'חופשה',reserve:'מילואים',absence:'היעדרות',personal:'נסיבות אישיות'};
   const ABS_OPTIONS=[['sick','מחלה'],['vacation','חופשה'],['reserve','מילואים'],['absence','היעדרות'],['personal','נסיבות אישיות']];
@@ -8161,7 +8161,7 @@ body.sf-exporting .shift-time-text,.coverage-time-range{unicode-bidi:embed;direc
 
 // V1.43.0 CANDIDATE — unified constraints + schedule workflow
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   const SOURCE='unified-week-grid';
 
   function escV143(v){
@@ -8510,7 +8510,7 @@ body.sf-exporting .shift-time-text,.coverage-time-range{unicode-bidi:embed;direc
 // OneShift v1.43.1-candidate — Home-only constraints + candidate flow
 // ============================================================
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   const SOURCE='manager-week-grid-v1431';
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const pad=n=>String(n).padStart(2,'0');
@@ -8793,7 +8793,7 @@ body.sf-exporting .shift-time-text,.coverage-time-range{unicode-bidi:embed;direc
 // constraint matrix, and stronger schedule enforcement
 // ============================================================
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   const SOURCE='manager-week-grid-v1432';
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const pad=n=>String(n).padStart(2,'0');
@@ -9095,7 +9095,7 @@ body.sf-exporting .shift-time-text,.coverage-time-range{unicode-bidi:embed;direc
 // Stable/Beta version labels + WFH quota deduction from blocked days
 // ============================================================
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   const STABLE_VERSION='1.42.9-stable-previous';
   try{ window.APP_VERSION=VERSION; window.APP_CHANNEL='candidate'; window.APP_STABLE_VERSION=STABLE_VERSION; }catch(e){}
 
@@ -9166,7 +9166,7 @@ function isEmployeeUnavailableForWfhQuota(empId,dateStr){
 // manager override visibility, WFH quota reasons, laptop layout.
 // ============================================================
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   const SOURCE='manager-week-grid-v1434';
   const DAY_NAMES=window.DAYS_HE || ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -9536,7 +9536,7 @@ body.sf-exporting .role-manager,body.sf-exporting .role-senior{border-width:1px!
 </style>
 <script id="oneshift-v1435-patch">
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const DAY_NAMES=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
   const ABS_LABEL={sick:'מחלה',vacation:'חופשה',reserve:'מילואים',absence:'היעדרות',personal:'נסיבות אישיות',other:'היעדרות'};
@@ -9700,7 +9700,7 @@ body.sf-exporting .role-manager,body.sf-exporting .role-senior{border-width:1px!
 </style>
 <script id="oneshift-v1436-version-and-font">
 (function(){
-  const VERSION='1.45.9';
+  const VERSION='1.46.2';
   try{window.APP_VERSION=VERSION;window.APP_CHANNEL='candidate';}catch(e){}
   function applyVersion(){
     const footer=document.getElementById('version-footer'); if(footer) footer.textContent='גרסה '+VERSION;
@@ -9805,7 +9805,7 @@ body.sf-exporting .role-manager,body.sf-exporting .role-senior{border-width:1px!
 <script id="oneshift-v1440-core">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const heDaysShort=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
 const q=s=>document.querySelector(s), qa=s=>[...document.querySelectorAll(s)];
 const esc144=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -10206,7 +10206,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="oneshift-v1441-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const DAY_SHORT=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳'];
@@ -10370,7 +10370,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="oneshift-v1442-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
 function applyVersion(){const f=q('#version-footer');if(f)f.textContent='גרסה '+VERSION;const l=q('#login-version-label');if(l)l.textContent=VERSION;try{document.documentElement.dataset.oneshiftVersion=VERSION}catch(e){}}
 
@@ -10575,7 +10575,7 @@ setTimeout(boot,900);setTimeout(applyVersion,1800);
 <script id="oneshift-v1443-readability-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
 function setVersion(){const a=q('#login-version-label');if(a)a.textContent=VERSION;const b=q('#version-footer');if(b)b.textContent='גרסה '+VERSION;try{window.APP_VERSION=VERSION}catch(e){}}
 function cleanHeaders(){
@@ -10714,7 +10714,7 @@ setTimeout(refresh,1000);setTimeout(refresh,2200);
 <script id="oneshift-v1444-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s), qa=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function setVersion(){const a=q('#login-version-label');if(a)a.textContent=VERSION;const b=q('#version-footer');if(b)b.textContent='גרסה '+VERSION;try{document.documentElement.dataset.oneshiftVersion=VERSION}catch(e){}}
@@ -10866,7 +10866,7 @@ setTimeout(refreshAll,1200);setTimeout(setVersion,2200);
 <script id="oneshift-v1445-stability-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
 function version(){const a=q('#login-version-label');if(a)a.textContent=VERSION;const b=q('#version-footer');if(b)b.textContent='גרסה '+VERSION;try{document.documentElement.dataset.oneshiftVersion=VERSION}catch(e){}}
 function labelValue(key,fallback){const v=window.settings&&String(settings[key]??'').trim();return v||fallback}
@@ -10987,7 +10987,7 @@ window.buildManualAttendancePanel=buildManualAttendancePanel;
 <script id="oneshift-v1446-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function setVersion(){const a=q('#login-version-label');if(a)a.textContent=VERSION;const b=q('#version-footer');if(b)b.textContent='גרסה '+VERSION;try{document.documentElement.dataset.oneshiftVersion=VERSION}catch(e){}}
@@ -11216,7 +11216,7 @@ body.sf-exporting .friday-panel-time,body.exporting-image .friday-panel-time{fon
 <script id="oneshift-v1447-final-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s), qa=s=>Array.from(document.querySelectorAll(s));
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const employeesArr=()=>{try{return Array.isArray(employees)?employees:(window.employees||[])}catch(e){return window.employees||[]}};
@@ -11486,7 +11486,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="oneshift-v1449-final-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s), qa=s=>Array.from(document.querySelectorAll(s));
 const emps=()=>{try{return Array.isArray(employees)?employees:(window.employees||[])}catch(e){return window.employees||[]}};
 const shs=()=>{try{return Array.isArray(shifts)?shifts:(window.shifts||[])}catch(e){return window.shifts||[]}};
@@ -11904,7 +11904,7 @@ body.exporting-image.os-laptop-view #home-schedule-output,body.exporting-image.o
 <script id="oneshift-v1450-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s),qa=s=>Array.from(document.querySelectorAll(s));
 const arrEmp=()=>{try{return Array.isArray(employees)?employees:(window.employees||[])}catch(e){return window.employees||[]}};
 const arrShift=()=>{try{return Array.isArray(shifts)?shifts:(window.shifts||[])}catch(e){return window.shifts||[]}};
@@ -12226,7 +12226,7 @@ button,input,select,option,textarea,table,th,td{
 <script id="oneshift-v1451-fixes-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s),qa=s=>Array.from(document.querySelectorAll(s));
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const emps=()=>{try{return Array.isArray(employees)?employees:(window.employees||[])}catch(e){return window.employees||[]}};
@@ -12507,7 +12507,7 @@ body.os-laptop-view #submit-screen.portal-mode .sub-portal-tab-btn{padding:8px 9
 <script id="oneshift-v1452-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s),qa=s=>Array.from(document.querySelectorAll(s));
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const emps=()=>{try{return Array.isArray(employees)?employees:(window.employees||[])}catch(e){return window.employees||[]}};
@@ -12679,7 +12679,7 @@ html body .wfh-summary-card .holiday-quota-note{font-weight:400!important}
 <script id="oneshift-v1453-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s),qa=s=>Array.from(document.querySelectorAll(s));
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const emps=()=>{try{return Array.isArray(employees)?employees:(window.employees||[])}catch(e){return window.employees||[]}};
@@ -12816,7 +12816,7 @@ html body.os-laptop-view .main-layout:not(.sidebar-collapsed) .sidebar-pin-label
 <script id="oneshift-v1454-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s),qa=s=>Array.from(document.querySelectorAll(s));
 function setVersion1454(){try{window.APP_VERSION=VERSION}catch(e){}try{APP_VERSION=VERSION}catch(e){}const a=q('#login-version-label');if(a)a.textContent=VERSION;const b=q('#version-footer');if(b)b.textContent='גרסה '+VERSION;try{document.documentElement.dataset.oneshiftVersion=VERSION}catch(e){}}
 function keepSidebarLabelsConsistent(){const layout=q('#main-layout');if(!layout)return;if(!layout.classList.contains('sidebar-collapsed'))qa('.sidebar .nav-label').forEach(x=>x.style.removeProperty('display'))}
@@ -12892,7 +12892,7 @@ html body .main-layout:not(.sidebar-collapsed) .sidebar .nav-icon{
 <script id="oneshift-v1455-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s), qa=s=>Array.from(document.querySelectorAll(s));
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const pad=n=>String(n).padStart(2,'0');
@@ -13340,7 +13340,7 @@ setTimeout(()=>{repairCurrentSchedule();refreshUI1455();},900);
 <script id="oneshift-v1456-version-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 function setVersion1456(){
   try{window.APP_VERSION=VERSION}catch(e){}
   try{APP_VERSION=VERSION}catch(e){}
@@ -13511,7 +13511,7 @@ html.os-dark-theme ::selection{background:#2563eb!important;color:#fff!important
 <script id="oneshift-v1457-dark-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 function isDark(){return localStorage.getItem('sf_theme')==='dark'}
 function syncDarkClass(){
   const dark=isDark();
@@ -13617,7 +13617,7 @@ body.sf-theme-dark .os-new-shift-option-v1458,body.sf-theme-dark .os-new-rule-no
 <script id="oneshift-v1458-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s), qa=s=>Array.from(document.querySelectorAll(s));
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const emps=()=>{try{return Array.isArray(employees)?employees:(window.employees||[])}catch(e){return window.employees||[]}};
@@ -13803,7 +13803,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 
 
-<!-- OneShift v1.45.9 — stable boot/report + authoritative per-employee WFH for new employees -->
+<!-- OneShift v1.46.2 — stable boot/report + authoritative per-employee WFH for new employees -->
 <style id="oneshift-v1459-style">
 /* Prevent visible report collapse/expand while the legacy startup layers settle. */
 html.os-v1459-settling #home-conflict-report,
@@ -13815,7 +13815,7 @@ html.os-v1459-settling #schedule-conflict-report{visibility:hidden!important}
 <script id="oneshift-v1459-patch">
 (function(){
 'use strict';
-const VERSION='1.45.9';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s),qa=s=>Array.from(document.querySelectorAll(s));
 const emps=()=>{try{return Array.isArray(employees)?employees:(window.employees||[])}catch(e){return window.employees||[]}};
 const shs=()=>{try{return Array.isArray(shifts)?shifts:(window.shifts||[])}catch(e){return window.shifts||[]}};
@@ -13940,11 +13940,11 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </script>
 
 
-<!-- OneShift v1.46.0 — hard-constraint scheduler integrity -->
+<!-- OneShift v1.46.2 — hard-constraint scheduler integrity -->
 <script id="oneshift-v1460-scheduler-integrity">
 (function(){
 'use strict';
-const VERSION='1.46.1';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s);
 const arr=x=>Array.isArray(x)?x:[];
 const emps=()=>arr(typeof employees!=='undefined'?employees:window.employees);
@@ -14214,7 +14214,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="oneshift-v1461-manual-freedom-and-hub">
 (function(){
 'use strict';
-const VERSION='1.46.1';
+const VERSION='1.46.2';
 const q=s=>document.querySelector(s), qa=s=>Array.from(document.querySelectorAll(s));
 const arr=x=>Array.isArray(x)?x:[];
 const emps=()=>arr(typeof employees!=='undefined'?employees:window.employees);
@@ -14371,6 +14371,18 @@ if(typeof prevAddCons==='function'&&!prevAddCons._v1461){
   const f=function(){const empId=q('#c-emp')?.value;const n=cons().length;const r=prevAddCons.apply(this,arguments);try{if(empId&&cons().length!==n)window.osApplyConstraintsNowV1461?.(empId)}catch(e){console.error('apply constraints',e)}return r};
   f._v1461=true;window.addConstraint=f;try{addConstraint=f}catch(e){}
 }
+
+/* The saved schedule / constraints may arrive after page start (cloud load). Apply the saved requests once per loaded schedule. */
+const appliedSchedules=new WeakSet();
+setInterval(()=>{
+  try{
+    if(typeof currentSchedule==='undefined'||!currentSchedule?.weekGroups||appliedSchedules.has(currentSchedule))return;
+    if(!emps().length||!shs().length)return;
+    appliedSchedules.add(currentSchedule);
+    const r=window.osApplyConstraintsNowV1461?.();
+    if(r&&(r.removed||r.placed))toast(`✅ עודכנו ${r.placed} שיבוצים לפי האילוצים השמורים`);
+  }catch(e){console.error('v1.46.2 apply saved constraints',e)}
+},1500);
 
 function setVersion(){
   try{window.APP_VERSION=VERSION}catch(e){}try{APP_VERSION=VERSION}catch(e){}
